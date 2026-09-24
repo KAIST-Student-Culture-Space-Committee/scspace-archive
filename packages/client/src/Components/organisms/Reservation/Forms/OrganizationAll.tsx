@@ -1,7 +1,8 @@
 "use client";
 
 import { useOrganizationAPI } from "@scspace-client/Hooks/organization";
-import SelectComponent, { ISelectOption } from "@scspace-client/Components/molecules/forms/Select";
+import { ISelectOption } from "@scspace-client/Components/molecules/forms/Select";
+import SearchSelectComponent from "@scspace-client/Components/molecules/forms/SearchSelect";
 import { Dispatch, SetStateAction } from "react";
 import { useAuth } from "@scspace-client/Hooks/auth";
 import { OrganizationStatusEnum } from "@scspace-depot/enums/organization.enum";
@@ -19,8 +20,9 @@ export function AllOrganizationForm({ setOrgId }: {
   }
 
   return (
-    <SelectComponent
+    <SearchSelectComponent
       label="Organization Name"
+      placeholder="Search organization"
       optionList={organization ? ([
         ...organization.filter(
           (o) => o.status !== OrganizationStatusEnum.REJECTED && o.status !== OrganizationStatusEnum.REGISTER_REQUEST
