@@ -5,6 +5,9 @@ import { schema, MatchPrediction, MatchInfo, User } from '@schema';
 import { and, eq, desc } from 'drizzle-orm';
 import { IMatchPredictionInsert } from './match.model';
 import { IMatchActualScores, IMatchInfo, IMatchInfoCreate, IMatchInfoUpdate } from '@scspace-depot/types/match';
+import { assertSubmissionOpen, isSubmissionOpen } from './match.submission';
+import { getNow } from '../../common/utils';
+import { rankPredictionGroups } from './match.leaderboard';
 import { comparedScoreCount, gradePrediction, isOutcomeCorrect, latestPredictions, scoreFields } from './match.grading';
 
 type MatchTransaction = Parameters<Parameters<MySql2Database<typeof schema>['transaction']>[0]>[0];
@@ -17,13 +20,13 @@ export class MatchPredictionRepository {
     @Inject(DBAsyncProvider) private readonly db: MySql2Database<typeof schema>,
   ) {}
 
-  async insertTestPrediction(data: IMatchPredictionInsert) {
+  async insertTestPrediction(data: Omit<IMatchPredictionInsert, 'phoneNumber'>) {
     const [user] = await this.db.select({ id: User.id }).from(User).where(eq(User.id, data.userId));
     if (!user) throw new NotFoundException(`사용자 ID ${data.userId}를 찾을 수 없습니다.`);
     return this.insert({ ...data, phoneNumber: 'TEST' });
   }
 
-  async insert(data: IMatchPredictionInsert & { phoneNumber?: string }) {
+  async insert(data: IMatchPredictionInsert) {
     const insertData = {
       userId: data.userId,
       matchId: data.matchId,
@@ -31,7 +34,7 @@ export class MatchPredictionRepository {
       firstScoreB: data.firstScoreB,
       secondScoreA: data.secondScoreA,
       secondScoreB: data.secondScoreB,
-      ...(data.phoneNumber !== undefined ? { phoneNumber: data.phoneNumber } : {}),
+      phoneNumber: data.phoneNumber,
     } satisfies typeof MatchPrediction.$inferInsert;
 
     return this.db.transaction(async (tx) => {
@@ -41,9 +44,7 @@ export class MatchPredictionRepository {
       if (!match) {
         throw new NotFoundException(`경기 ID ${data.matchId}를 찾을 수 없습니다.`);
       }
-      if (!match.allowSubmission) {
-        throw new ForbiddenException('현재 이 경기의 예측 제출을 받지 않습니다.');
-      }
+      assertSubmissionOpen(match, getNow());
       if (comparedScoreCount(match)) {
         throw new ForbiddenException('실제 점수가 공개된 경기에는 제출할 수 없습니다.');
       }
@@ -57,6 +58,7 @@ export class MatchPredictionRepository {
           firstScoreB: data.firstScoreB,
           secondScoreA: data.secondScoreA,
           secondScoreB: data.secondScoreB,
+          phoneNumber: data.phoneNumber,
           timeSubmit: new Date(),
           ...emptyGrades,
         }).where(eq(MatchPrediction.id, existing.id));
@@ -69,7 +71,7 @@ export class MatchPredictionRepository {
 
   async createMatchInfo(data: IMatchInfoCreate) {
     const [result] = await this.db.insert(MatchInfo).values({
-      matchName: data.matchName, teamA: data.teamA, teamB: data.teamB,
+      matchName: data.matchName, teamA: data.teamA, teamB: data.teamB, startTime: data.startTime,
       allowSubmission: false,
       firstScoreA: null, firstScoreB: null, secondScoreA: null, secondScoreB: null,
     });
@@ -87,7 +89,7 @@ export class MatchPredictionRepository {
       const updated = { ...match, ...data };
       if (scoresChanged) {
         this.assertActualScores(updated);
-        if (match.allowSubmission) {
+        if (isSubmissionOpen(match, getNow())) {
           throw new BadRequestException('접수를 종료한 뒤 실제 점수를 저장해주세요.');
         }
       }
@@ -104,6 +106,12 @@ export class MatchPredictionRepository {
         .where(eq(MatchInfo.id, matchId)).for('update');
       if (!match) {
         throw new NotFoundException(`경기 ID ${matchId}를 찾을 수 없습니다.`);
+      }
+      if (allowSubmission && match.startTime == null) {
+        throw new BadRequestException('Configure kickoff time before opening submissions.');
+      }
+      if (allowSubmission && getNow() >= match.startTime!) {
+        throw new BadRequestException('Cannot open submissions after kickoff.');
       }
       if (allowSubmission && comparedScoreCount(match)) {
         throw new BadRequestException('실제 점수를 모두 비워 결과를 취소한 뒤 접수를 열어주세요.');
@@ -141,7 +149,7 @@ export class MatchPredictionRepository {
     await this.db.transaction(async (tx) => {
       const [match] = await tx.select().from(MatchInfo).where(eq(MatchInfo.id, matchId)).for('update');
       if (!match) throw new NotFoundException(`경기 ID ${matchId}를 찾을 수 없습니다.`);
-      if (match.allowSubmission) throw new BadRequestException('접수를 종료한 뒤 재채점해주세요.');
+      if (isSubmissionOpen(match, getNow())) throw new BadRequestException('접수를 종료한 뒤 재채점해주세요.');
       this.assertActualScores(match);
       if (!comparedScoreCount(match)) throw new BadRequestException('실제 점수를 먼저 입력해주세요.');
       await this.gradeInTransaction(tx, match);
@@ -216,6 +224,27 @@ export class MatchPredictionRepository {
       isOutcomeCorrect: row.actual && row.correctScoreCount != null && row.scoreDiffAbs != null
         ? isOutcomeCorrect(row, row.actual) : null,
     }));
+  }
+
+  async fetchLeaderboard(matchId: number) {
+    await this.fetchByMatchId(matchId);
+    const rows = await this.db.select({
+      prediction: MatchPrediction, actual: MatchInfo,
+      nameKr: User.nameKr, nameEn: User.nameEn,
+    }).from(MatchPrediction)
+      .innerJoin(MatchInfo, eq(MatchPrediction.matchId, MatchInfo.id))
+      .innerJoin(User, eq(MatchPrediction.userId, User.id))
+      .where(eq(MatchPrediction.matchId, matchId));
+    const latest = latestPredictions(rows.map(row => ({ ...row.prediction, actual: row.actual, nameKr: row.nameKr, nameEn: row.nameEn })));
+    const predictions = latest.map(row => ({
+      id: row.id, userId: row.userId, userName: row.nameKr?.trim() || row.nameEn,
+      firstScoreA: row.firstScoreA, firstScoreB: row.firstScoreB,
+      secondScoreA: row.secondScoreA, secondScoreB: row.secondScoreB,
+      timeSubmit: row.timeSubmit, correctScoreCount: row.correctScoreCount,
+      scoreDiffAbs: row.scoreDiffAbs,
+      isOutcomeCorrect: row.correctScoreCount != null && row.scoreDiffAbs != null ? isOutcomeCorrect(row, row.actual) : null,
+    }));
+    return { participantCount: predictions.length, groups: rankPredictionGroups(predictions) };
   }
 
   async fetchAll() {

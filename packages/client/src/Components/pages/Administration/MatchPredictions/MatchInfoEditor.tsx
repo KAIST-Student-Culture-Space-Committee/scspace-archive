@@ -1,6 +1,8 @@
 "use client";
 
 import { Button, Dialog, Field, Flex, Grid, Input, Portal, Stack, Text } from "@chakra-ui/react";
+import MatchStartTime from "./MatchStartTime";
+import { getMatchNow } from "@scspace-client/Components/pages/match-predict/match-time";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import type { IMatchInfo } from "@scspace-depot/types/match";
@@ -16,6 +18,7 @@ function MatchInfoForm({ match, mutation, onClose }: {
     const [initial, setInitial] = useState(() => createMatchInfoDraft(match));
     const [draft, setDraft] = useState(initial);
     const [error, setError] = useState("");
+    const submissionOpen = match.allowSubmission && match.startTime != null && getMatchNow() < match.startTime;
     const dirty = (Object.keys(initial) as (keyof MatchInfoDraft)[]).some((field) => initial[field] !== draft[field]);
 
     function submit(event: FormEvent) {
@@ -37,7 +40,7 @@ function MatchInfoForm({ match, mutation, onClose }: {
     }
 
     function resetResults() {
-        if (mutation.isPending || match.allowSubmission) return;
+        if (mutation.isPending || submissionOpen) return;
         setError("");
         mutation.mutate({ matchId: match.id, data: {
             firstScoreA: null, firstScoreB: null, secondScoreA: null, secondScoreB: null,
@@ -67,6 +70,7 @@ function MatchInfoForm({ match, mutation, onClose }: {
             <Dialog.Body>
                 <Stack gap={4}>
                     <Text fontSize="sm" color="fg.muted">접수 종료 후 실제 점수를 저장하고 ‘채점 적용’을 누르세요. 점수를 수정하면 이전 채점값은 초기화됩니다. 최종 점수는 누적 점수이며, 빈 항목은 채점에서 제외합니다.</Text>
+                    <MatchStartTime value={draft.startTime} disabled={mutation.isPending} onChange={(startTime) => setDraft({ ...draft, startTime })} />
                     <Grid templateColumns="repeat(2, minmax(0, 1fr))" gap={4}>
                         {textFields.map(({ name, label, maxLength }) => (
                             <Field.Root key={name} required gridColumn={name === "matchName" ? "1 / -1" : undefined}>
@@ -85,7 +89,7 @@ function MatchInfoForm({ match, mutation, onClose }: {
                                         <Field.Label>{row.aLabel} · {draft.teamA || "팀 A"}</Field.Label>
                                         <Input type="number" min={0} max={99} step={1} placeholder="미입력" textAlign="center"
                                             aria-label={`${row.label} 팀 A`} value={draft[row.a]}
-                                            disabled={mutation.isPending || match.allowSubmission}
+                                            disabled={mutation.isPending || submissionOpen}
                                             onChange={(event) => { setDraft({ ...draft, [row.a]: event.target.value }); setError(""); }} />
                                     </Field.Root>
                                     <Text pb={2} aria-hidden="true">−</Text>
@@ -93,7 +97,7 @@ function MatchInfoForm({ match, mutation, onClose }: {
                                         <Field.Label>{row.bLabel} · {draft.teamB || "팀 B"}</Field.Label>
                                         <Input type="number" min={0} max={99} step={1} placeholder="미입력" textAlign="center"
                                             aria-label={`${row.label} 팀 B`} value={draft[row.b]}
-                                            disabled={mutation.isPending || match.allowSubmission}
+                                            disabled={mutation.isPending || submissionOpen}
                                             onChange={(event) => { setDraft({ ...draft, [row.b]: event.target.value }); setError(""); }} />
                                     </Field.Root>
                                 </Grid>
@@ -101,7 +105,7 @@ function MatchInfoForm({ match, mutation, onClose }: {
                         ))}
                         <Flex direction="column" align="start" gap={1}>
                             <Button type="button" size="sm" variant="outline" colorPalette="red" onClick={resetResults}
-                                disabled={!hasResults || mutation.isPending || match.allowSubmission}>결과 초기화</Button>
+                                disabled={!hasResults || mutation.isPending || submissionOpen}>결과 초기화</Button>
                             <Text fontSize="xs" color="fg.muted">전반·최종 점수와 채점값을 즉시 초기화합니다. 경기명·팀 이름의 편집 내용은 저장 버튼으로 반영하세요.</Text>
                         </Flex>
                     </Stack>

@@ -1,10 +1,11 @@
 import type { IMatchInfo, IMatchInfoUpdate } from '@scspace-depot/types/match';
 
 export const scoreFields = ['firstScoreA', 'firstScoreB', 'secondScoreA', 'secondScoreB'] as const;
-export type MatchInfoDraft = Record<'matchName' | 'teamA' | 'teamB' | typeof scoreFields[number], string>;
+export type MatchInfoDraft = Record<'matchName' | 'teamA' | 'teamB' | typeof scoreFields[number], string> & { startTime: number | null };
 
 export function createMatchInfoDraft(match: IMatchInfo): MatchInfoDraft {
     return {
+        startTime: match.startTime,
         matchName: match.matchName,
         teamA: match.teamA, teamB: match.teamB,
         firstScoreA: match.firstScoreA?.toString() ?? '',
@@ -16,6 +17,7 @@ export function createMatchInfoDraft(match: IMatchInfo): MatchInfoDraft {
 
 export function buildMatchInfoUpdate(initial: MatchInfoDraft, draft: MatchInfoDraft): IMatchInfoUpdate {
     const update: IMatchInfoUpdate = {};
+    if (initial.startTime !== draft.startTime && draft.startTime != null) update.startTime = draft.startTime;
     for (const [first, final] of [['firstScoreA', 'secondScoreA'], ['firstScoreB', 'secondScoreB']] as const) {
         if (draft[first] !== '' && draft[final] !== '' && Number(draft[final]) < Number(draft[first])) {
             throw new Error('최종 누적 점수는 전반 점수 이상이어야 합니다.');
