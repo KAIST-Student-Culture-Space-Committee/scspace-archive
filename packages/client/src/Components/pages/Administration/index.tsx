@@ -32,8 +32,8 @@ export default function Administration() {
             href: "/admin/lottery"
         },
         {
-            kor: "단체관람 승부예측 관리",
-            eng: "Match Prediction Leaderboard",
+            kor: "승부예측 대시보드",
+            eng: "Match Prediction Dashboard",
             preview: <MatchPredictions />,
             href: "/admin/match-prediction"
         }

@@ -67,6 +67,7 @@ export function useMatchPredictionAPI(userId?: number) {
 type MatchPredictionResponse = Omit<IMatchPrediction, "timeSubmit"> & {
     timeSubmit: string | null;
     phoneNumber?: string | null;
+    isOutcomeCorrect: boolean | null;
 };
 
 export function useAllMatchPredictions(enabled: boolean) {
@@ -87,7 +88,10 @@ export function useMatchSubmissionAdmin(enabled: boolean) {
             requestMatchJson<ISuccessResponse, { allowSubmission: boolean }>(
                 `/match/${matchId}/submission`, "PATCH", { allowSubmission },
             ),
-        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/match"] }),
+        onSuccess: () => queryClient.invalidateQueries({
+            predicate: ({ queryKey }) => typeof queryKey[0] === "string" &&
+                (queryKey[0] === "/match" || queryKey[0].startsWith("/match/")),
+        }),
     });
     return { matches, updateSubmission };
 }
@@ -120,6 +124,16 @@ export function useCreateTestPrediction() {
             requestMatchJson<ISuccessResponse, typeof data>("/match/predictions/test", "POST", data),
         onSuccess: () => queryClient.invalidateQueries({
             predicate: ({ queryKey }) => typeof queryKey[0] === "string" && queryKey[0].startsWith("/match/prediction"),
+        }),
+    });
+}
+
+export function useApplyMatchGrading() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (matchId: number) => requestMatchJson<ISuccessResponse, object>(`/match/${matchId}/grade`, "POST", {}),
+        onSuccess: () => queryClient.invalidateQueries({
+            predicate: ({ queryKey }) => typeof queryKey[0] === "string" && queryKey[0].startsWith("/match/"),
         }),
     });
 }

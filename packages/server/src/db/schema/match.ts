@@ -30,6 +30,8 @@ export const MatchPrediction = mysqlTable('match_prediction', {
   timeSubmit: timestamp('time_submit').defaultNow(),
   phoneNumber: varchar('phone', { length: 32 }).notNull(),
   predictionResult: int('prediction_result'),
+  correctScoreCount: int('correct_score_count'),
+  scoreDiffAbs: int('score_diff_abs'),
 }, (table) => [
   index('match_prediction_user_id_idx').on(table.userId),
   index('match_prediction_match_id_idx').on(table.matchId),

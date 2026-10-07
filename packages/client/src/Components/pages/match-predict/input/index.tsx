@@ -191,8 +191,12 @@ export default function MatchPredictInputPage() {
             return false;
         }
         const values = [firstA, firstB, secondA, secondB].map(Number);
-        if (values.some((v) => isNaN(v) || v < 0 || v > 99)) {
-            alert("점수는 0~99 사이의 숫자여야 합니다.");
+        if (values.some((v) => !Number.isInteger(v) || v < 0 || v > 99)) {
+            alert("점수는 0~99 사이의 정수여야 합니다.");
+            return false;
+        }
+        if (Number(secondA) < Number(firstA) || Number(secondB) < Number(firstB)) {
+            alert("최종 누적 점수는 전반 점수 이상이어야 합니다.");
             return false;
         }
         return true;
@@ -279,7 +283,7 @@ export default function MatchPredictInputPage() {
                         </Flex>
 
                         <ScoreSection label="전반전 점수" valueA={firstA} valueB={firstB} onChangeA={setFirstA} onChangeB={setFirstB} />
-                        <ScoreSection label="후반전 점수" valueA={secondA} valueB={secondB} onChangeA={setSecondA} onChangeB={setSecondB} />
+                        <ScoreSection label="최종 누적 점수" valueA={secondA} valueB={secondB} onChangeA={setSecondA} onChangeB={setSecondB} />
 
                         <Button
                             alignSelf="stretch"

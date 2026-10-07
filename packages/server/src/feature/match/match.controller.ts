@@ -75,6 +75,9 @@ export class MatchController {
             scores[field] = value;
         }
 
+        if (scores.secondScoreA < scores.firstScoreA || scores.secondScoreB < scores.firstScoreB) {
+            throw new BadRequestException('최종 누적 점수는 전반 점수 이상이어야 합니다.');
+        }
         return scores;
     }
 
@@ -223,6 +226,13 @@ export class MatchController {
             throw new BadRequestException('allowSubmission은 boolean 값이어야 합니다.');
         }
         await this.matchRepo.updateAllowSubmission(matchId, body.allowSubmission);
+        return { success: true };
+    }
+
+    @Post(':matchId/grade')
+    @UseGuards(AdminGuard)
+    async regradeMatch(@Param('matchId', ParseIntPipe) matchId: number) {
+        await this.matchRepo.regradeMatch(matchId);
         return { success: true };
     }
 

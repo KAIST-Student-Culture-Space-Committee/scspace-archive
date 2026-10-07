@@ -16,6 +16,11 @@ export function createMatchInfoDraft(match: IMatchInfo): MatchInfoDraft {
 
 export function buildMatchInfoUpdate(initial: MatchInfoDraft, draft: MatchInfoDraft): IMatchInfoUpdate {
     const update: IMatchInfoUpdate = {};
+    for (const [first, final] of [['firstScoreA', 'secondScoreA'], ['firstScoreB', 'secondScoreB']] as const) {
+        if (draft[first] !== '' && draft[final] !== '' && Number(draft[final]) < Number(draft[first])) {
+            throw new Error('최종 누적 점수는 전반 점수 이상이어야 합니다.');
+        }
+    }
     for (const field of ['matchName', 'teamA', 'teamB'] as const) {
         if (initial[field] === draft[field]) continue;
         if (!draft[field].trim()) throw new Error('경기명과 팀 이름을 입력해주세요.');
