@@ -4,6 +4,7 @@ import { MySql2Database } from 'drizzle-orm/mysql2';
 import { schema, MatchPrediction, MatchInfo } from '@schema'; 
 import { eq, desc, InferInsertModel } from 'drizzle-orm';
 import { IMatchPredictionInsert } from './match.model';
+import { IMatchInfoUpdate } from '@scspace-depot/types/match';
 
 @Injectable()
 export class MatchPredictionRepository {
@@ -33,6 +34,17 @@ export class MatchPredictionRepository {
       }
       const [result] = await tx.insert(MatchPrediction).values(insertData);
       return result;
+    });
+  }
+
+  async updateMatchInfo(matchId: number, data: IMatchInfoUpdate) {
+    return this.db.transaction(async (tx) => {
+      const [match] = await tx.select().from(MatchInfo)
+        .where(eq(MatchInfo.id, matchId)).for('update');
+      if (!match) {
+        throw new NotFoundException(`경기 ID ${matchId}를 찾을 수 없습니다.`);
+      }
+      await tx.update(MatchInfo).set(data).where(eq(MatchInfo.id, matchId));
     });
   }
 
@@ -67,7 +79,7 @@ export class MatchPredictionRepository {
   }
 
   async fetchAll() {
-    return this.db.select().from(MatchInfo).orderBy(desc(MatchInfo.matchTime));
+    return this.db.select().from(MatchInfo).orderBy(desc(MatchInfo.id));
   }
 
   async fetchPredictionById(predictionId: number) {

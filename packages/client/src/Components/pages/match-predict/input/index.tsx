@@ -156,13 +156,8 @@ export default function MatchPredictInputPage() {
         }
     }, [isLogined, isLoading, linkPush]);
 
-    const activeMatch = allMatches.data?.data?.find((match) => match.allowSubmission) ?? allMatches.data?.data?.find((match) => (
-        match.firstScoreA === null &&
-        match.firstScoreB === null &&
-        match.secondScoreA === null &&
-        match.secondScoreB === null &&
-        new Date(match.matchTime).getTime() > Date.now()
-    )) ?? allMatches.data?.data?.[0];
+    const activeMatch = allMatches.data?.data?.find((match) => match.allowSubmission)
+        ?? allMatches.data?.data?.[0];
     const matchId = activeMatch?.id;
     const existingPrediction = myPredictions.data?.data?.find(
         (p) => p.prediction.matchId === matchId

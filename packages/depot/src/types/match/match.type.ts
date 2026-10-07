@@ -1,7 +1,6 @@
 export interface IMatchInfo {
     id: number;
     matchName: string;
-    matchTime: Date;
     allowSubmission: boolean;
     teamA: string;
     teamB: string;
@@ -10,6 +9,8 @@ export interface IMatchInfo {
     secondScoreA: number | null;
     secondScoreB: number | null;
 }
+
+export type IMatchInfoUpdate = Partial<Omit<IMatchInfo, 'id' | 'allowSubmission'>>;
 
 export interface IMatchPrediction {
     id: number;
