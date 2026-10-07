@@ -216,6 +216,11 @@ export function useRedirects() {
                 label: "개발",
                 helperText: "Development",
                 invisible: !isAdmin,
+                subdomains: [
+                    { href: "/dev/find-user", label: "ID로 유저 찾기", helperText: "Find User by ID" },
+                    { href: "/dev/find-organization", label: "ID로 조직 찾기", helperText: "Find Organization by ID" },
+                    { href: "/dev/find-space", label: "ID로 공간 찾기", helperText: "Find Space by ID" },
+                ],
             },
             {
                 href: "/passpin",

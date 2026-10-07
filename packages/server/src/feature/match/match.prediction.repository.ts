@@ -163,12 +163,18 @@ export class MatchPredictionRepository {
 
   async fetchAllPredictions() {
     const rows = await this.db
-      .select({ prediction: MatchPrediction, actual: MatchInfo })
+      .select({
+        prediction: MatchPrediction, actual: MatchInfo,
+        nameKr: User.nameKr, nameEn: User.nameEn, studentNumber: User.studentNumber,
+      })
       .from(MatchPrediction)
       .leftJoin(MatchInfo, eq(MatchPrediction.matchId, MatchInfo.id))
+      .leftJoin(User, eq(MatchPrediction.userId, User.id))
       .orderBy(desc(MatchPrediction.timeSubmit), desc(MatchPrediction.id));
-    return rows.map(({ prediction, actual }) => ({
+    return rows.map(({ prediction, actual, nameKr, nameEn, studentNumber }) => ({
       ...prediction,
+      userName: nameKr?.trim() || nameEn?.trim() || null,
+      studentNumber,
       isOutcomeCorrect: actual && prediction.correctScoreCount != null && prediction.scoreDiffAbs != null
         ? isOutcomeCorrect(prediction, actual) : null,
     }));

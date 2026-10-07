@@ -67,6 +67,8 @@ export function useMatchPredictionAPI(userId?: number) {
 type MatchPredictionResponse = Omit<IMatchPrediction, "timeSubmit"> & {
     timeSubmit: string | null;
     phoneNumber?: string | null;
+    userName: string | null;
+    studentNumber: number | null;
     isOutcomeCorrect: boolean | null;
 };
 

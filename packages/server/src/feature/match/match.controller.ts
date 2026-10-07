@@ -237,6 +237,7 @@ export class MatchController {
     }
 
     @Get('predictions')
+    @UseGuards(AdminGuard)
     async getAllPredictions() {
         try {
             const data = await this.matchRepo.fetchAllPredictions();
