@@ -28,7 +28,7 @@ export const MatchPrediction = mysqlTable('match_prediction', {
   secondScoreA: int('second_score_a').notNull(),
   secondScoreB: int('second_score_b').notNull(),
   timeSubmit: timestamp('time_submit').defaultNow(),
-  phoneNumber: varchar('phone', { length: 32 }).notNull(),
+  phoneNumber: varchar('phone', { length: 32 }),
   predictionResult: int('prediction_result'),
   correctScoreCount: int('correct_score_count'),
   scoreDiffAbs: int('score_diff_abs'),

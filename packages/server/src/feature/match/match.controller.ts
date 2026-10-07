@@ -128,31 +128,6 @@ export class MatchController {
         
     }
 
-    @Patch('prediction/:id')
-    @UseGuards(AuthGuard('jwt'))
-    async appendPredictionFromPatch(
-        @Req() req: AuthenticatedRequest,
-        @Param('id', ParseIntPipe) id: number,
-        @Body() body: IMatchPredictionUpdate,
-    ) {
-        try {
-            const prediction = await this.matchRepo.fetchPredictionById(id);
-            if (prediction.userId !== req.user.id) {
-                throw new ForbiddenException('본인의 예측만 수정할 수 있습니다.');
-            }
-
-            await this.matchRepo.insert({
-                userId: req.user.id,
-                matchId: prediction.matchId,
-                ...this.parseScores(body),
-            });
-            return { success: true };
-        } catch (error) {
-            this.logger.error('Error updating match prediction:', error);
-            throw error;
-        }
-    }
-
     @Get('prediction/:userId')
     @UseGuards(AuthGuard('jwt'))
     async getPredictionsByUserId(
@@ -234,6 +209,13 @@ export class MatchController {
     async regradeMatch(@Param('matchId', ParseIntPipe) matchId: number) {
         await this.matchRepo.regradeMatch(matchId);
         return { success: true };
+    }
+
+    @Get('predictions/all')
+    @UseGuards(AuthGuard('jwt'))
+    async getAllPredictionsForUsers() {
+        const data = await this.matchRepo.fetchAllPredictionsForUsers();
+        return { status: 'success', data };
     }
 
     @Get('predictions')

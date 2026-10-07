@@ -2,7 +2,7 @@ import { Injectable, Inject, NotFoundException, ForbiddenException, BadRequestEx
 import { DBAsyncProvider } from 'src/db/db.provider'; 
 import { MySql2Database } from 'drizzle-orm/mysql2';
 import { schema, MatchPrediction, MatchInfo, User } from '@schema';
-import { and, eq, desc, InferInsertModel } from 'drizzle-orm';
+import { and, eq, desc } from 'drizzle-orm';
 import { IMatchPredictionInsert } from './match.model';
 import { IMatchActualScores, IMatchInfo, IMatchInfoCreate, IMatchInfoUpdate } from '@scspace-depot/types/match';
 import { comparedScoreCount, gradePrediction, isOutcomeCorrect, latestPredictions, scoreFields } from './match.grading';
@@ -32,7 +32,7 @@ export class MatchPredictionRepository {
       secondScoreA: data.secondScoreA,
       secondScoreB: data.secondScoreB,
       ...(data.phoneNumber !== undefined ? { phoneNumber: data.phoneNumber } : {}),
-    } as InferInsertModel<typeof MatchPrediction>;
+    } satisfies typeof MatchPrediction.$inferInsert;
 
     return this.db.transaction(async (tx) => {
       // Serialize submissions and the admin toggle on the same match row.
@@ -180,21 +180,46 @@ export class MatchPredictionRepository {
     }));
   }
 
-  async fetchAll() {
-    return this.db.select().from(MatchInfo).orderBy(desc(MatchInfo.id));
+  async fetchAllPredictionsForUsers() {
+    // Explicit projection: never select phone/student number for this endpoint.
+    const rows = await this.db.select({
+      id: MatchPrediction.id,
+      userId: MatchPrediction.userId,
+      matchId: MatchPrediction.matchId,
+      firstScoreA: MatchPrediction.firstScoreA,
+      firstScoreB: MatchPrediction.firstScoreB,
+      secondScoreA: MatchPrediction.secondScoreA,
+      secondScoreB: MatchPrediction.secondScoreB,
+      timeSubmit: MatchPrediction.timeSubmit,
+      predictionResult: MatchPrediction.predictionResult,
+      correctScoreCount: MatchPrediction.correctScoreCount,
+      scoreDiffAbs: MatchPrediction.scoreDiffAbs,
+      nameKr: User.nameKr,
+      nameEn: User.nameEn,
+      actual: {
+        firstScoreA: MatchInfo.firstScoreA, firstScoreB: MatchInfo.firstScoreB,
+        secondScoreA: MatchInfo.secondScoreA, secondScoreB: MatchInfo.secondScoreB,
+      },
+    }).from(MatchPrediction)
+      .leftJoin(MatchInfo, eq(MatchPrediction.matchId, MatchInfo.id))
+      .leftJoin(User, eq(MatchPrediction.userId, User.id))
+      .orderBy(desc(MatchPrediction.timeSubmit), desc(MatchPrediction.id));
+
+    return rows.map((row) => ({
+      id: row.id, userId: row.userId, matchId: row.matchId,
+      firstScoreA: row.firstScoreA, firstScoreB: row.firstScoreB,
+      secondScoreA: row.secondScoreA, secondScoreB: row.secondScoreB,
+      timeSubmit: row.timeSubmit,
+      predictionResult: row.predictionResult,
+      correctScoreCount: row.correctScoreCount, scoreDiffAbs: row.scoreDiffAbs,
+      userName: row.nameKr?.trim() || row.nameEn?.trim() || null,
+      isOutcomeCorrect: row.actual && row.correctScoreCount != null && row.scoreDiffAbs != null
+        ? isOutcomeCorrect(row, row.actual) : null,
+    }));
   }
 
-  async fetchPredictionById(predictionId: number) {
-    const [result] = await this.db
-      .select()
-      .from(MatchPrediction)
-      .where(eq(MatchPrediction.id, predictionId));
-
-    if (!result) {
-      throw new NotFoundException(`예측 ID ${predictionId}를 찾을 수 없습니다.`);
-    }
-
-    return result;
+  async fetchAll() {
+    return this.db.select().from(MatchInfo).orderBy(desc(MatchInfo.id));
   }
 
   async fetchByMatchId(matchId: number) {
