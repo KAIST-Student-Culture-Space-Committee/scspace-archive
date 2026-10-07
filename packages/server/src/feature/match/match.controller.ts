@@ -92,6 +92,17 @@ export class MatchController {
         };
     }
 
+    @Post('predictions/test')
+    @UseGuards(AdminGuard)
+    async createTestPrediction(@Body() body: IMatchPredictionCreate & { userId: number }) {
+        const prediction = this.parseCreateBody(body);
+        if (!Number.isInteger(body.userId) || body.userId <= 0 || body.userId > 2147483647 || body.matchId > 2147483647) {
+            throw new BadRequestException('사용자 ID와 경기 ID는 유효한 양의 정수여야 합니다.');
+        }
+        await this.matchRepo.insertTestPrediction({ ...prediction, userId: body.userId });
+        return { success: true };
+    }
+
     @Post('prediction')
     @UseGuards(AuthGuard('jwt'))
     async createPrediction(

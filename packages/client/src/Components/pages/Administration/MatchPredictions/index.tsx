@@ -9,6 +9,7 @@ import { useEffect, useMemo, useState } from "react";
 import { HiOutlineRefresh } from "react-icons/hi";
 import { emptyPredictionFilters, filterPredictions, PredictionFilters } from "./filters";
 import MatchInfoEditor from "./MatchInfoEditor";
+import TestPredictionForm from "./TestPredictionForm";
 
 const dateFormatter = new Intl.DateTimeFormat("ko-KR", {
     timeZone: "Asia/Seoul",
@@ -60,7 +61,7 @@ export default function MatchPredictions() {
     const rows = predictions.data?.data ?? [];
 
     return (
-        <Grid height="100%" minH={0} minW={0} overflowY="auto" templateRows="auto auto auto minmax(160px, 1fr)" gap={3}>
+        <Grid height="100%" minH={0} minW={0} overflowY="auto" templateRows="auto auto auto auto minmax(160px, 1fr)" gap={3}>
             <Stack borderWidth="1px" rounded="sm" p={3} gap={3} maxH="240px" overflowY="auto">
                 <Text fontWeight="semibold">경기 정보 및 접수 관리</Text>
                 {matches.isPending ? (
@@ -93,6 +94,7 @@ export default function MatchPredictions() {
                     <Text role="alert" color="red.600">Failed to change submission toggle status: {updateSubmission.error.message}</Text>
                 )}
             </Stack>
+            <TestPredictionForm />
             <Flex gap={3} wrap="wrap" align="end" borderWidth="1px" rounded="sm" p={3}>
                 <Field.Root flex="1 1 180px">
                     <Field.Label>경기 ID</Field.Label>

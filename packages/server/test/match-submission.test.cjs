@@ -89,3 +89,41 @@ test('both POST and PATCH enforce the closed-match rule', async () => {
     await assert.rejects(controller.appendPredictionFromPatch(req, 2, scores), (error) => error.getStatus() === 403);
     assert.equal(events.some(([action]) => action === 'insert'), false);
 });
+
+test('test submissions require AdminGuard and use the specified user ID', async () => {
+    const { AdminGuard } = require('../src/feature/auth/jwt/jwt.guard');
+    assert.ok(Reflect.getMetadata('__guards__', MatchController.prototype.createTestPrediction).includes(AdminGuard));
+    const inserted = [];
+    const controller = new MatchController({ insertTestPrediction: async (data) => inserted.push(data) });
+    assert.deepEqual(await controller.createTestPrediction(input), { success: true });
+    assert.deepEqual(inserted, [input]);
+    for (const body of [null, {}, { ...input, userId: '7' }, { ...input, userId: 0 }, { ...input, userId: 1.5 },
+        { ...input, matchId: 2147483648 }, { ...input, userId: 2147483648 }, { ...input, secondScoreA: -1 }]) {
+        await assert.rejects(controller.createTestPrediction(body), (error) => error.getStatus() === 400);
+    }
+    assert.equal(inserted.length, 1);
+});
+
+test('test submission rejects unknown users and supplies required phone marker for known users', async () => {
+    let users = [];
+    const repository = new MatchPredictionRepository({
+        select: () => ({ from: () => ({ where: async () => users }) }),
+    });
+    const inserted = [];
+    repository.insert = async (data) => inserted.push(data);
+    await assert.rejects(repository.insertTestPrediction(input), (error) => error.getStatus() === 404);
+    assert.deepEqual(inserted, []);
+    users = [{ id: 7 }];
+    await repository.insertTestPrediction(input);
+    assert.deepEqual(inserted, [{ ...input, phoneNumber: 'TEST' }]);
+});
+
+test('test phone marker is persisted and submission closure still applies', async () => {
+    const data = { ...input, phoneNumber: 'TEST' };
+    const open = fixture({ id: 1, allowSubmission: true });
+    await open.repository.insert(data);
+    assert.deepEqual(open.events.find(([action]) => action === 'insert'), ['insert', data]);
+    const closed = fixture({ id: 1, allowSubmission: false });
+    await assert.rejects(closed.repository.insert(data), (error) => error.getStatus() === 403);
+    assert.equal(closed.events.some(([action]) => action === 'insert'), false);
+});
