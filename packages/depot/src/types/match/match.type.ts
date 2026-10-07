@@ -11,6 +11,7 @@ export interface IMatchInfo {
 }
 
 export type IMatchInfoUpdate = Partial<Omit<IMatchInfo, 'id' | 'allowSubmission'>>;
+export type IMatchInfoCreate = Pick<IMatchInfo, 'matchName' | 'teamA' | 'teamB'>;
 
 export interface IMatchPrediction {
     id: number;
