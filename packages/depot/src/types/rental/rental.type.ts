@@ -39,7 +39,7 @@ export type IRentalCreate = Pick<
 //the rentalWorkerId => req.user.id, then we should throw a userId / organizationId (indiv => 1)
 export type IRentalCreateClient = Pick<
     IRentalCreate,
-    "userId" | "organizationId" | "goodsId" | "count" | "phoneNumber" | "emergencyContactPresident" | "emergencyContactVicePresident" | "reasonLocation" | "reasonPurpose"
+    "userId" | "organizationId" | "goodsId" | "count" | "phoneNumber" | "emergencyContactPresident" | "emergencyContactVicePresident" | "reasonLocation" | "reasonPurpose" | "timeDue"
 >;
 
 export type IRentalUpdate = Partial<Pick<

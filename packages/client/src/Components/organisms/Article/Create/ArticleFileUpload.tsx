@@ -28,22 +28,24 @@ function FileUploadList() {
     if (files.length === 0) return null;
 
     return (
-        <Wrap>
-            {files.map((file, idx) => (
-                <FileUpload.Item
-                    w={"fit-content"}
-                    file={file}
-                    key={`${file.name}-${idx}`}
-                >
-                    {file.name}
-                    <FileUpload.ItemDeleteTrigger asChild>
-                        <IconButton size={"sm"} variant={"ghost"}>
-                            <HiX />
-                        </IconButton>
-                    </FileUpload.ItemDeleteTrigger>
-                </FileUpload.Item>
-            ))}
-        </Wrap>
+        <FileUpload.ItemGroup asChild>
+            <Wrap>
+                {files.map((file, idx) => (
+                    <FileUpload.Item
+                        w={"fit-content"}
+                        file={file}
+                        key={`${file.name}-${idx}`}
+                    >
+                        {file.name}
+                        <FileUpload.ItemDeleteTrigger asChild>
+                            <IconButton size={"sm"} variant={"ghost"}>
+                                <HiX />
+                            </IconButton>
+                        </FileUpload.ItemDeleteTrigger>
+                    </FileUpload.Item>
+                ))}
+            </Wrap>
+        </FileUpload.ItemGroup>
     )
 }
 

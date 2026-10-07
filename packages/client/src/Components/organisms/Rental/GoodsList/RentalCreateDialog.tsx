@@ -28,9 +28,10 @@ import { getErrorMessage } from "@scspace-client/Hooks/error";
 import { toaster } from "@scspace-client/Components/atoms/Toaster";
 import { IRentalCreateClient } from "@scspace-depot/types/rental/rental.type";
 import { IGoods } from "@scspace-depot/types/rental";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Counter from "./Counter";
 import TextareaComponent from "@scspace-client/Components/molecules/forms/Textarea";
+import { dateUtils } from "@scspace-client/Hooks/utils";
 
 export default function RentalCreateDialog({ 
     item, 
@@ -62,6 +63,7 @@ export default function RentalCreateDialog({
 
     const [count, setCount] = useState<number>(1);
     const maxCount = countAvailable;
+    const { getTime, timeUnit } = useMemo(() => dateUtils(), []);
 
     const { isManager } = useAuth();
     const { student } = useStudent({ studentNumber: studentNumberStr });
@@ -164,6 +166,9 @@ export default function RentalCreateDialog({
             return;
         }
 
+        const deadlineDate = new Date(deadline.getFullYear(), deadline.getMonth(), deadline.getDate());
+        const timeDue = getTime(deadlineDate) + timeUnit.date - 1;
+
         const payload: IRentalCreateClient = {
             userId: borrowerId,
             organizationId,
@@ -174,6 +179,7 @@ export default function RentalCreateDialog({
             emergencyContactVicePresident: emergencyContactVP,
             reasonLocation,
             reasonPurpose,
+            timeDue,
         };
 
         const toastId = `rental-create-${item.id}-${borrowerId}`;

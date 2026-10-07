@@ -1,5 +1,6 @@
 import { useOrganizationAPI } from "@scspace-client/Hooks/organization";
-import SelectComponent, { ISelectOption } from "@scspace-client/Components/molecules/forms/Select";
+import { ISelectOption } from "@scspace-client/Components/molecules/forms/Select";
+import SearchSelectComponent from "@scspace-client/Components/molecules/forms/SearchSelect";
 import { Dispatch, SetStateAction } from "react";
 import { OrganizationStatusEnum } from "@scspace-depot/enums/organization.enum";
 import { IndividualOrganizationId } from "@scspace-depot/consts/organization.const";
@@ -22,8 +23,10 @@ export function OrganizationForm({ id, setOrgId }: {
   }
 
   return (
-    <SelectComponent
+    <SearchSelectComponent
       label="Organization Name"
+      placeholder="Search organization"
+      defaultValue={IndividualOrganizationId.toString()}
       optionList={organization ? ([
         ...organizations,
         ...organization.filter((o) =>

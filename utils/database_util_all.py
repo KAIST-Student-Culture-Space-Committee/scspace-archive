@@ -62,6 +62,12 @@ def import_csv_to_tables(input_dir, priority):
             df = pd.read_csv(file_path, encoding='utf-8')
             print(f"Uploading {csv_file} to {table_name} table...")
 
+            # pandas가 pin 컬럼을 숫자로 오인식해 앞자리 0을 지우는 문제 복구
+            if table_name == "passpin" and "pin" in df.columns:
+                df["pin"] = df["pin"].apply(
+                    lambda v: str(v).zfill(6) if pd.notnull(v) else v
+                )
+
             # NaN 값을 None으로 변환
             df = df.astype(object).where(pd.notnull(df), None)
 
@@ -98,6 +104,12 @@ def import_csv_to_table(csv_file, table_name):
     try:
         df = pd.read_csv(file_path, encoding='utf-8')
         print(f"Uploading {csv_file} to {table_name} table...")
+
+        # pandas가 pin 컬럼을 숫자로 오인식해 앞자리 0을 지우는 문제 복구
+        if table_name == "passpin" and "pin" in df.columns:
+            df["pin"] = df["pin"].apply(
+                lambda v: str(v).zfill(6) if pd.notnull(v) else v
+            )
 
         # NaN 값을 None으로 변환
         df = df.astype(object).where(pd.notnull(df), None)

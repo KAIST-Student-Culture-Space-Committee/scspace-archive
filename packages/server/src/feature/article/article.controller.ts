@@ -48,8 +48,8 @@ export class ArticleController {
     @UseGuards(AuthGuard('jwt'))
     @UseInterceptors(
         FileFieldsInterceptor([
-            { name: 'images', maxCount: 12 },
-            { name: 'files', maxCount: 8 },
+            { name: 'images', maxCount: 20 },
+            { name: 'files', maxCount: 20 },
         ], {
             storage: publicStorage,
         })

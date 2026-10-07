@@ -2,7 +2,7 @@ import { Injectable, Inject, NotFoundException, BadRequestException, Logger } fr
 import { DBAsyncProvider } from 'src/db/db.provider';
 import { MySql2Database } from 'drizzle-orm/mysql2';
 import { Passpin, schema, Reservation, Space, OrganizationMember } from "@schema";
-import { and, between, count, desc, eq, or, ne } from "drizzle-orm";
+import { and, between, count, desc, eq, or, ne, lte, gte } from "drizzle-orm";
 import { PasspinEnum } from '@scspace-depot/enums/passpin.enum';
 import { IPasspin, IPasspinSpace, IPasspinWithSpace } from "@scspace-depot/types/passpin";
 import { MPasspin, MPasspinSpace } from "@scspace-server/feature/passpin/passpin.model";
@@ -92,10 +92,8 @@ export class PasspinRepository {
                 Reservation,
                 and(
                     eq(Passpin.spaceId, Reservation.spaceId),
-                    or(
-                        between(Reservation.timeFrom, now - 60, now + 60),
-                        between(Reservation.timeTo, now - 60, now + 60),
-                    )
+                    lte(Reservation.timeFrom, now + 60),
+                    gte(Reservation.timeTo, now - 60)
                 )
             )
             .leftJoin(

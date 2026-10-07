@@ -13,12 +13,12 @@ import {
     IRentalCreateClient,
 } from '@scspace-depot/types/rental';
 import { IDataResponse, ISuccessResponse } from '@scspace-depot/types/common';
-import { checkContainAllId, takeAll, getNow, getDate, getTime, getDateEnd, getDateDiffInMinute, getDateString } from '@scspace-server/common/utils';
+import { checkContainAllId, takeAll, getNow, getDate, getTime, getDateDiffInMinute, getDateString, getDateBegin } from '@scspace-server/common/utils';
 import { RentalRepository } from './rental.repository';
 import { RentalPublicService } from './rental.public.service';
 import { UserPublicService } from '../user/user.public.service';
 import { IUser } from '@scspace-depot/types/user';
-import { MAX_RENTAL_DURATION, MAX_RENTAL_LIMIT } from '@scspace-depot/consts/rental.const';
+import { MAX_RENTAL_LIMIT } from '@scspace-depot/consts/rental.const';
 import { FileService } from '@scspace-server/tools/file/file.service';
 import { PdfService } from "@scspace-server/tools/pdf/pdf.service";
 import { ICertificatePdf } from "@scspace-depot/types/pdf/pdf.type";
@@ -140,14 +140,15 @@ export class RentalService {
             throw new BadRequestException('Cannot create new rental: user has overdue rentals that must be returned first');
         }
 
-        // 3. 물품 가용성 확인
+        // 3. 반납 기한 유효성 확인
         const now = getNow();
-        const _now = getDate(now);
-        _now.setDate(_now.getDate() + MAX_RENTAL_DURATION);
-        const afterOneWeek = getDateEnd(getTime(_now));
+        const timeDue = rentalData.timeDue;
+        if (!Number.isFinite(timeDue) || timeDue <= now) {
+            throw new BadRequestException('Return due date must be after the rental start time');
+        }
 
 
-        // 물품 재고 감소
+        // 물품 재고 확인
         const goods = await this.rentalPublicService.getGoodsById(rentalData.goodsId);
         if (!goods) {
             throw new NotFoundException('Goods not found');
@@ -160,7 +161,7 @@ export class RentalService {
         const id = await this.rentalRepository.createRental({
             ...rentalData,
             timeBorrow: now,
-            timeDue: afterOneWeek
+            timeDue,
         });
 
         // 재고 업데이트
@@ -182,14 +183,19 @@ export class RentalService {
             throw new NotFoundException('User not found');
         }
 
+        const rentalDuration = Math.max(
+            1,
+            Math.round(getDateDiffInMinute(getDateBegin(now), getDateBegin(timeDue)) / (60 * 24))
+        );
+
         const meta: ICertificatePdf = {
             id: id,
             user: user,
             goods: goods,
             contact: user.email,
             rentalFrom: getDateString(now),
-            rentalTo: getDateString(afterOneWeek),
-            rentalDuration: MAX_RENTAL_DURATION,
+            rentalTo: getDateString(timeDue),
+            rentalDuration,
             rentalQuantity: rentalData.count,
         }
 

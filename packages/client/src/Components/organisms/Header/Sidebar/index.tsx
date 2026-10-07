@@ -67,7 +67,7 @@ export default function Sidebar() {
                                     color="gray.500"
                                     margin={0}
                                 >
-                                    Student Curture & Space Commitee
+                                    Student Culture & Space Commitee
                                 </Text>
                             </Drawer.Title>
                         </Drawer.Header>

@@ -46,6 +46,7 @@ function ImageUploadList() {
             maxW="100%"
             whiteSpace="nowrap"
         >
+            <FileUpload.ItemGroup asChild>
             <HStack w="fit-content" minWidth="max-content" h="450px">
                 <Box
                     key={`empty-before`}
@@ -133,6 +134,7 @@ function ImageUploadList() {
                 // background={"gray.200"}
                 />
             </HStack>
+            </FileUpload.ItemGroup>
         </Center >
     )
 }
