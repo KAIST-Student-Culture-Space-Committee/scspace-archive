@@ -137,8 +137,8 @@ test('resubmission updates scores and timestamp, resets grading, and preserves i
     await repository.insert({ ...input, phoneNumber: 'TEST' });
     assert.equal(events.some(([action]) => action === 'insert'), false);
     const update = events.find(([action]) => action === 'update')[1];
-    assert.deepEqual(Object.keys(update).sort(), [...Object.keys(scores), 'timeSubmit', 'predictionResult'].sort());
-    assert.deepEqual({ ...update, timeSubmit: undefined }, { ...scores, timeSubmit: undefined, predictionResult: null });
+    assert.deepEqual(Object.keys(update).sort(), [...Object.keys(scores), 'timeSubmit', 'predictionResult', 'correctScoreCount', 'scoreDiffAbs'].sort());
+    assert.deepEqual({ ...update, timeSubmit: undefined }, { ...scores, timeSubmit: undefined, predictionResult: null, correctScoreCount: null, scoreDiffAbs: null });
     assert.ok(update.timeSubmit.getTime() >= before && update.timeSubmit.getTime() <= Date.now());
 });
 

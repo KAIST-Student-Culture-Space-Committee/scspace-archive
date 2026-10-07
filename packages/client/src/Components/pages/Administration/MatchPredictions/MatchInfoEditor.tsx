@@ -49,7 +49,7 @@ function MatchInfoForm({ match, mutation, onClose }: {
         <form onSubmit={submit}>
             <Dialog.Body>
                 <Stack gap={4}>
-                    <Text fontSize="sm" color="fg.muted">점수를 비워두면 미입력으로 저장합니다. 실제 점수 저장 시 예측 결과가 자동 채점되지는 않습니다.</Text>
+                    <Text fontSize="sm" color="fg.muted">접수 종료 후 실제 점수를 저장하고 ‘채점 적용’을 누르세요. 점수를 수정하면 이전 채점값은 초기화됩니다. 최종 점수는 누적 점수이며, 빈 항목은 채점에서 제외합니다.</Text>
                     <Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap={4}>
                         {fields.map(({ name, label, type = "text", maxLength }) => (
                             <Field.Root key={name} required={type !== "number"}>
@@ -63,7 +63,7 @@ function MatchInfoForm({ match, mutation, onClose }: {
                                     max={type === "number" ? 99 : undefined}
                                     step={type === "number" ? 1 : undefined}
                                     placeholder={type === "number" ? "미입력" : undefined}
-                                    disabled={mutation.isPending}
+                                    disabled={mutation.isPending || (type === "number" && match.allowSubmission)}
                                     onChange={(event) => { setDraft({ ...draft, [name]: event.target.value }); setError(""); }}
                                 />
                             </Field.Root>

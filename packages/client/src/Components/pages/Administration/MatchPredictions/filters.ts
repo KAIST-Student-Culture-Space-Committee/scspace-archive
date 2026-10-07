@@ -3,6 +3,7 @@ export interface PredictionFilters {
     userId: string;
     history: "all" | "latest";
     result: "all" | "pending" | "graded";
+    sort: "latest" | "score";
 }
 
 export const emptyPredictionFilters: PredictionFilters = {
@@ -10,6 +11,7 @@ export const emptyPredictionFilters: PredictionFilters = {
     userId: "",
     history: "all",
     result: "all",
+    sort: "latest",
 };
 
 interface PredictionRow {
@@ -17,7 +19,9 @@ interface PredictionRow {
     matchId: number;
     userId: number;
     timeSubmit: string | Date | null;
-    predictionResult: number | null;
+    correctScoreCount: number | null;
+    scoreDiffAbs: number | null;
+    isOutcomeCorrect: boolean | null;
 }
 
 function submittedAt(value: PredictionRow["timeSubmit"]) {
@@ -32,19 +36,31 @@ export function filterPredictions<T extends PredictionRow>(rows: readonly T[], f
     const seen = new Set<string>();
     const userId = filters.userId.trim();
 
-    return sorted.filter((row) => {
+    const filtered = sorted.filter((row) => {
         if (filters.matchId && row.matchId !== Number(filters.matchId)) return false;
         if (userId && (!/^\d+$/.test(userId) || row.userId !== Number(userId))) return false;
 
         // Choose the actual latest record before applying result filters.
-        if (filters.history === "latest") {
+        if (filters.history === "latest" || (filters.sort === "score" && filters.matchId)) {
             const key = `${row.matchId}:${row.userId}`;
             if (seen.has(key)) return false;
             seen.add(key);
         }
 
-        if (filters.result === "pending") return row.predictionResult === null;
-        if (filters.result === "graded") return row.predictionResult !== null;
+        const graded = row.correctScoreCount != null && row.scoreDiffAbs != null;
+        if (filters.result === "pending") return !graded;
+        if (filters.result === "graded") return graded;
         return true;
     });
+    if (filters.sort === "score" && filters.matchId) {
+        filtered.sort((a, b) => {
+            const aGraded = a.correctScoreCount != null && a.scoreDiffAbs != null;
+            const bGraded = b.correctScoreCount != null && b.scoreDiffAbs != null;
+            if (aGraded !== bGraded) return aGraded ? -1 : 1;
+            if (!aGraded) return 0;
+            return b.correctScoreCount! - a.correctScoreCount! || a.scoreDiffAbs! - b.scoreDiffAbs! ||
+                Number(b.isOutcomeCorrect) - Number(a.isOutcomeCorrect) || a.id - b.id;
+        });
+    }
+    return filtered;
 }

@@ -23,9 +23,11 @@ export interface IMatchPrediction {
     secondScoreB: number;
     timeSubmit: Date;
     predictionResult: number | null;
+    correctScoreCount: number | null;
+    scoreDiffAbs: number | null;
 }
 
-export type IMatchPredictionCreate = Omit<IMatchPrediction, 'id' | 'userId' | 'timeSubmit' | 'predictionResult'>;
+export type IMatchPredictionCreate = Omit<IMatchPrediction, 'id' | 'userId' | 'timeSubmit' | 'predictionResult' | 'correctScoreCount' | 'scoreDiffAbs'>;
 
 export type IMatchPredictionUpdate = Pick<IMatchPrediction, 'firstScoreA' | 'firstScoreB' | 'secondScoreA' | 'secondScoreB'>;
 
@@ -33,3 +35,6 @@ export interface IMatchPredictionWithInfo {
     prediction: IMatchPrediction;
     matchInfo: IMatchInfo | null;
 }
+
+// secondScore is the cumulative final score; keep existing API/DB names compatible.
+export type IMatchActualScores = Pick<IMatchInfo, 'firstScoreA' | 'firstScoreB' | 'secondScoreA' | 'secondScoreB'>;

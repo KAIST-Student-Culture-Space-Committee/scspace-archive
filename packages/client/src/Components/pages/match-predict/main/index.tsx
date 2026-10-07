@@ -175,7 +175,7 @@ function MyPredictionCard({ prediction, onEdit }: {
             >
                 <Text color="white" fontSize="20px" fontWeight="700">나의 예측 현황</Text>
                 <ScoreDisplay label="전반전 예상 스코어" scoreA={prediction.firstScoreA} scoreB={prediction.firstScoreB} />
-                <ScoreDisplay label="후반전 예상 스코어" scoreA={prediction.secondScoreA} scoreB={prediction.secondScoreB} />
+                <ScoreDisplay label="최종 예상 스코어" scoreA={prediction.secondScoreA} scoreB={prediction.secondScoreB} />
                 <Flex justify="center">
                     <Button
                         onClick={onEdit}
@@ -247,8 +247,8 @@ const RANK_GLOWS = [
 function ScoringCard() {
     const rows = [
         { rank: "1 순위", desc: "맞힌 스코어 개수" },
-        { rank: "2 순위", desc: "실제 점수와 차이의 절댓값" },
-        { rank: "3 순위", desc: "승패 여부" },
+        { rank: "2 순위", desc: "실제 점수와 오차의 절댓값 합" },
+        { rank: "3 순위", desc: "승무패 적중 여부" },
     ];
 
     return (

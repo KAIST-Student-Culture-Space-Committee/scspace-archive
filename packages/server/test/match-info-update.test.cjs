@@ -59,7 +59,7 @@ test('update route requires the existing admin guard', () => {
 function repositoryFixture(exists) {
     const updates = [];
     const tx = {
-        select: () => ({ from: () => ({ where: () => ({ for: async () => exists ? [{ id: 1 }] : [] }) }) }),
+        select: () => ({ from: () => ({ where: () => ({ for: async () => exists ? [{ id: 1, allowSubmission: false, firstScoreA: null, firstScoreB: null, secondScoreA: null, secondScoreB: null }] : [] }) }) }),
         update: () => ({ set: (data) => ({ where: async () => updates.push(data) }) }),
     };
     return { repository: new MatchPredictionRepository({ transaction: (fn) => fn(tx) }), updates };

@@ -3,7 +3,7 @@
 import { Button, Field, Flex, Grid, Input, NativeSelect, Stack, Switch, Table, Text } from "@chakra-ui/react";
 import LoadingComponent from "@scspace-client/Components/atoms/Loading";
 import { useAuth } from "@scspace-client/Hooks/auth";
-import { useAllMatchPredictions, useMatchSubmissionAdmin } from "@scspace-client/Hooks/match";
+import { useAllMatchPredictions, useApplyMatchGrading, useMatchSubmissionAdmin } from "@scspace-client/Hooks/match";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { HiOutlineRefresh } from "react-icons/hi";
@@ -34,6 +34,7 @@ export default function MatchPredictions() {
     const router = useRouter();
     const predictions = useAllMatchPredictions(!authLoading && isAdmin);
     const { matches, updateSubmission } = useMatchSubmissionAdmin(!authLoading && isAdmin);
+    const applyGrading = useApplyMatchGrading();
     const [filters, setFilters] = useState<PredictionFilters>(emptyPredictionFilters);
     const filteredRows = useMemo(
         () => filterPredictions(predictions.data?.data ?? [], filters),
@@ -47,7 +48,7 @@ export default function MatchPredictions() {
         });
         return [...options.entries()].sort(([a], [b]) => b - a);
     }, [matches.data, predictions.data]);
-    const hasFilters = filters.matchId !== "" || filters.userId !== "" || filters.history !== "all" || filters.result !== "all";
+    const hasFilters = filters.matchId !== "" || filters.userId !== "" || filters.history !== "all" || filters.result !== "all" || filters.sort !== "latest";
     const invalidUserId = filters.userId.trim() !== "" && !/^\d+$/.test(filters.userId.trim());
 
     useEffect(() => {
@@ -78,11 +79,17 @@ export default function MatchPredictions() {
                     <Flex key={match.id} justify="space-between" align="center" gap={3} wrap="wrap">
                         <Text fontSize="sm">#{match.id} {match.matchName} ({match.teamA} : {match.teamB})</Text>
                         <Flex gap={3} align="center" wrap="wrap">
-                            <MatchInfoEditor match={match} disabled={updateSubmission.isPending || matches.isFetching} />
+                            <MatchInfoEditor match={match} disabled={updateSubmission.isPending || applyGrading.isPending || matches.isFetching} />
+                            <Button size="sm" colorPalette="cyan"
+                                disabled={match.allowSubmission || updateSubmission.isPending || applyGrading.isPending || matches.isFetching}
+                                loading={applyGrading.isPending && applyGrading.variables === match.id}
+                                onClick={() => applyGrading.mutate(match.id)}>
+                                채점 적용
+                            </Button>
                             <Switch.Root
                                 colorPalette="green"
                                 checked={match.allowSubmission === true}
-                                disabled={updateSubmission.isPending || matches.isFetching}
+                                disabled={updateSubmission.isPending || applyGrading.isPending || matches.isFetching}
                                 onCheckedChange={({ checked }) => updateSubmission.mutate({
                                     matchId: match.id, allowSubmission: checked,
                                 })}
@@ -97,6 +104,9 @@ export default function MatchPredictions() {
                 {updateSubmission.isError && (
                     <Text role="alert" color="red.600">Failed to change submission toggle status: {updateSubmission.error.message}</Text>
                 )}
+                <Text fontSize="sm" color="fg.muted">접수 종료 → 실제 점수 저장 → 채점 적용. 점수 수정 후에는 다시 채점 적용을 누르세요.</Text>
+                {applyGrading.isError && <Text role="alert" color="red.600">{applyGrading.error.message}</Text>}
+                {applyGrading.isSuccess && <Text role="status" color="green.600">경기 #{applyGrading.variables} 채점이 적용되었습니다.</Text>}
             </Stack>
             <TestPredictionForm />
             <Flex gap={3} wrap="wrap" align="end" borderWidth="1px" rounded="sm" p={3}>
@@ -105,7 +115,7 @@ export default function MatchPredictions() {
                     <NativeSelect.Root size="sm" width="100%">
                         <NativeSelect.Field
                             value={filters.matchId}
-                            onChange={(event) => setFilters({ ...filters, matchId: event.target.value })}
+                            onChange={(event) => setFilters({ ...filters, matchId: event.target.value, sort: event.target.value ? filters.sort : "latest" })}
                         >
                             <option value="">전체 경기</option>
                             {matchOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
@@ -126,7 +136,7 @@ export default function MatchPredictions() {
                 </Field.Root>
                 <Field.Root flex="1 1 180px">
                     <Field.Label>제출 이력</Field.Label>
-                    <NativeSelect.Root size="sm" width="100%">
+                    <NativeSelect.Root size="sm" width="100%" disabled={filters.sort === "score"}>
                         <NativeSelect.Field
                             value={filters.history}
                             onChange={(event) => setFilters({ ...filters, history: event.target.value as PredictionFilters["history"] })}
@@ -145,11 +155,23 @@ export default function MatchPredictions() {
                             onChange={(event) => setFilters({ ...filters, result: event.target.value as PredictionFilters["result"] })}
                         >
                             <option value="all">전체 결과</option>
-                            <option value="pending">미반영</option>
-                            <option value="graded">반영됨</option>
+                            <option value="pending">미채점</option>
+                            <option value="graded">채점됨</option>
                         </NativeSelect.Field>
                         <NativeSelect.Indicator />
                     </NativeSelect.Root>
+                </Field.Root>
+                <Field.Root flex="1 1 180px">
+                    <Field.Label>정렬</Field.Label>
+                    <NativeSelect.Root size="sm" width="100%">
+                        <NativeSelect.Field value={filters.sort}
+                            onChange={(event) => setFilters({ ...filters, sort: event.target.value as PredictionFilters["sort"], history: event.target.value === "score" ? "latest" : filters.history })}>
+                            <option value="latest">최신 제출순</option>
+                            <option value="score" disabled={!filters.matchId}>점수 높은 순</option>
+                        </NativeSelect.Field>
+                        <NativeSelect.Indicator />
+                    </NativeSelect.Root>
+                    <Field.HelperText>경기를 선택하면 점수순으로 정렬할 수 있습니다.</Field.HelperText>
                 </Field.Root>
                 <Button size="sm" variant="outline" disabled={!hasFilters} onClick={() => setFilters(emptyPredictionFilters)}>
                     필터 초기화
@@ -158,7 +180,7 @@ export default function MatchPredictions() {
             <Flex justify="space-between" align="center" gap={3} wrap="wrap">
                 <Text color="fg.muted" fontSize="sm" aria-live="polite">
                     {predictions.isSuccess ? `표시 ${filteredRows.length}건 / 전체 ${rows.length}건 · ` : ""}
-                    {filters.history === "latest" ? "사용자·경기별 최신 제출" : "수정 이력 포함"} · 최신 제출순 · 점수 A : B
+                    {filters.history === "latest" ? "사용자·경기별 최신 제출" : "수정 이력 포함"} · {filters.sort === "score" ? "적중 수 ↓ · 오차 합 ↑ · 승무패 적중 우선" : "최신 제출순"} · 점수 A : B
                 </Text>
                 <Button
                     size="sm"
@@ -187,7 +209,7 @@ export default function MatchPredictions() {
                         <Table.Caption>승부예측 제출 목록 · {filteredRows.length}건</Table.Caption>
                         <Table.Header>
                             <Table.Row bg="bg.muted">
-                                {["예측 ID", "사용자 ID", "경기 ID", "전반 점수", "후반 점수", "전화번호", "제출 시간 (KST)", "예측 결과"].map((label) => (
+                                {["예측 ID", "사용자 ID", "경기 ID", "전반 점수", "최종 점수", "전화번호", "제출 시간 (KST)", "적중 수", "오차 합", "승무패"].map((label) => (
                                     <Table.ColumnHeader key={label} whiteSpace="nowrap">
                                         {label}
                                     </Table.ColumnHeader>
@@ -204,7 +226,9 @@ export default function MatchPredictions() {
                                     <Table.Cell whiteSpace="nowrap">{prediction.secondScoreA} : {prediction.secondScoreB}</Table.Cell>
                                     <Table.Cell whiteSpace="nowrap">{prediction.phoneNumber || "—"}</Table.Cell>
                                     <Table.Cell whiteSpace="nowrap">{formatSubmitTime(prediction.timeSubmit)}</Table.Cell>
-                                    <Table.Cell>{prediction.predictionResult ?? "미반영"}</Table.Cell>
+                                    <Table.Cell>{prediction.correctScoreCount ?? "미채점"}</Table.Cell>
+                                    <Table.Cell>{prediction.scoreDiffAbs ?? "—"}</Table.Cell>
+                                    <Table.Cell>{prediction.isOutcomeCorrect == null ? "—" : prediction.isOutcomeCorrect ? "O" : "X"}</Table.Cell>
                                 </Table.Row>
                             ))}
                         </Table.Body>
