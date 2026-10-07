@@ -197,7 +197,7 @@ export function useRedirects() {
                     {
                         href: "/admin/match-prediction",
                         label: "승부예측 대시보드",
-                        helperText: "Match Prediction Leaderboard"
+                        helperText: "Match Prediction Dashboard"
                     },
                     {
                         href: "/admin/lottery-seminar",

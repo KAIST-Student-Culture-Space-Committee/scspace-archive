@@ -4,8 +4,8 @@ import MatchPredictions from "@scspace-client/Components/pages/Administration/Ma
 export default function MatchPredictionAdminPage() {
     return (
         <PageTemplete
-            title={["운영", "경기 예측 리더보드"]}
-            subtitle={["Administration", "Match Prediction Leaderboard"]}
+            title={["운영", "승부예측 대시보드"]}
+            subtitle={["Administration", "Match Prediction Dashboard"]}
         >
             <MatchPredictions />
         </PageTemplete>
