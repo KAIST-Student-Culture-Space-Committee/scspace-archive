@@ -2,7 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useQueryApi } from "./api";
-import { IMatchInfo, IMatchPredictionCreate, IMatchPredictionWithInfo } from "@scspace-depot/types/match";
+import { IMatchInfo, IMatchPrediction, IMatchPredictionCreate, IMatchPredictionWithInfo } from "@scspace-depot/types/match";
 import { ISuccessResponse } from "@scspace-depot/types/common";
 
 const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
@@ -62,4 +62,17 @@ export function useMatchPredictionAPI(userId?: number) {
     return {
         myPredictions,
     };
+}
+
+type MatchPredictionResponse = Omit<IMatchPrediction, "timeSubmit"> & {
+    timeSubmit: string | null;
+    phoneNumber?: string | null;
+};
+
+export function useAllMatchPredictions(enabled: boolean) {
+    return useQueryApi<{ status: string; data: MatchPredictionResponse[] }>(
+        "/match/predictions",
+        undefined,
+        { enabled },
+    );
 }

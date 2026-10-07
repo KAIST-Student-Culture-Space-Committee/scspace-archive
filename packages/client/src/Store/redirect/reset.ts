@@ -195,6 +195,11 @@ export function useRedirects() {
                         helperText: "Manage User"
                     },
                     {
+                        href: "/admin/match-prediction",
+                        label: "경기 예측 리더보드",
+                        helperText: "Match Prediction Leaderboard"
+                    },
+                    {
                         href: "/admin/lottery-seminar",
                         label: "세미나실 정기예약 추첨 관리",
                         helperText: "Seminar Lottery Management"

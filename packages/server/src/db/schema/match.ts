@@ -28,6 +28,7 @@ export const MatchPrediction = mysqlTable('match_prediction', {
   secondScoreA: int('second_score_a').notNull(),
   secondScoreB: int('second_score_b').notNull(),
   timeSubmit: timestamp('time_submit').defaultNow(),
+  phoneNumber: varchar('phone', { length: 32 }).notNull(),
   predictionResult: int('prediction_result'),
 }, (table) => [
   index('match_prediction_user_id_idx').on(table.userId),

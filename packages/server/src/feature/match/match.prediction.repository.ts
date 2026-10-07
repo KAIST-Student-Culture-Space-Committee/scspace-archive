@@ -40,6 +40,13 @@ export class MatchPredictionRepository {
       .orderBy(desc(MatchPrediction.timeSubmit), desc(MatchPrediction.id));
   }
 
+  async fetchAllPredictions() {
+    return this.db
+      .select()
+      .from(MatchPrediction)
+      .orderBy(desc(MatchPrediction.timeSubmit), desc(MatchPrediction.id));
+  }
+
   async fetchAll() {
     return this.db.select().from(MatchInfo).orderBy(desc(MatchInfo.matchTime));
   }

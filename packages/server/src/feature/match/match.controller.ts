@@ -13,6 +13,7 @@ import {
     UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { AdminGuard } from '../auth/jwt/jwt.guard';
 import { IUser } from '@scspace-depot/types/user';
 import { Request } from 'express';
 import { MatchPredictionRepository } from './match.prediction.repository';
@@ -128,7 +129,8 @@ export class MatchController {
             throw error;
         }
     }
-    
+
+
     
     @Get()
     async getAllMatches() {
@@ -141,6 +143,17 @@ export class MatchController {
         }
         catch (error) {
             this.logger.error('Error fetching all matches:', error);
+            throw error;
+        }
+    }
+
+    @Get('predictions')
+    async getAllPredictions() {
+        try {
+            const data = await this.matchRepo.fetchAllPredictions();
+            return { status: 'success', data };
+        } catch (error) {
+            this.logger.error('Error fetching all match predictions:', error);
             throw error;
         }
     }
