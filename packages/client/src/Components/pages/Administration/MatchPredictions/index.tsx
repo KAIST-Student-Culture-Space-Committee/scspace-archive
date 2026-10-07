@@ -1,12 +1,14 @@
 "use client";
 
-import { Button, Flex, Grid, Stack, Switch, Table, Text } from "@chakra-ui/react";
+import { Button, Field, Flex, Grid, Input, NativeSelect, Stack, Switch, Table, Text } from "@chakra-ui/react";
 import LoadingComponent from "@scspace-client/Components/atoms/Loading";
 import { useAuth } from "@scspace-client/Hooks/auth";
 import { useAllMatchPredictions, useMatchSubmissionAdmin } from "@scspace-client/Hooks/match";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { HiOutlineRefresh } from "react-icons/hi";
+import { emptyPredictionFilters, filterPredictions, PredictionFilters } from "./filters";
+import MatchInfoEditor from "./MatchInfoEditor";
 
 const dateFormatter = new Intl.DateTimeFormat("ko-KR", {
     timeZone: "Asia/Seoul",
@@ -30,6 +32,21 @@ export default function MatchPredictions() {
     const router = useRouter();
     const predictions = useAllMatchPredictions(!authLoading && isAdmin);
     const { matches, updateSubmission } = useMatchSubmissionAdmin(!authLoading && isAdmin);
+    const [filters, setFilters] = useState<PredictionFilters>(emptyPredictionFilters);
+    const filteredRows = useMemo(
+        () => filterPredictions(predictions.data?.data ?? [], filters),
+        [predictions.data, filters],
+    );
+    const matchOptions = useMemo(() => {
+        const options = new Map<number, string>();
+        matches.data?.data.forEach((match) => options.set(match.id, `#${match.id} ${match.matchName}`));
+        predictions.data?.data.forEach((prediction) => {
+            if (!options.has(prediction.matchId)) options.set(prediction.matchId, `#${prediction.matchId}`);
+        });
+        return [...options.entries()].sort(([a], [b]) => b - a);
+    }, [matches.data, predictions.data]);
+    const hasFilters = filters.matchId !== "" || filters.userId !== "" || filters.history !== "all" || filters.result !== "all";
+    const invalidUserId = filters.userId.trim() !== "" && !/^\d+$/.test(filters.userId.trim());
 
     useEffect(() => {
         if (authLoading) return;
@@ -43,40 +60,99 @@ export default function MatchPredictions() {
     const rows = predictions.data?.data ?? [];
 
     return (
-        <Grid height="100%" minH={0} minW={0} templateRows="auto auto minmax(0, 1fr)" gap={3}>
+        <Grid height="100%" minH={0} minW={0} overflowY="auto" templateRows="auto auto auto minmax(160px, 1fr)" gap={3}>
             <Stack borderWidth="1px" rounded="sm" p={3} gap={3} maxH="240px" overflowY="auto">
-                <Text fontWeight="semibold">경기별 예측 접수</Text>
+                <Text fontWeight="semibold">경기 정보 및 접수 관리</Text>
                 {matches.isPending ? (
-                    <Text color="fg.muted">경기 정보를 불러오는 중입니다.</Text>
+                    <Text color="fg.muted">loading match info...</Text>
                 ) : matches.isError ? (
-                    <Text role="alert" color="red.600">접수 상태를 불러오지 못했습니다. 새로고침해주세요.</Text>
+                    <Text role="alert" color="red.600">failed to load matchinfo. Please try again later.</Text>
                 ) : matches.data?.data.length === 0 ? (
-                    <Text color="fg.muted">등록된 경기가 없습니다.</Text>
+                    <Text color="fg.muted">No match found.</Text>
                 ) : matches.data?.data.map((match) => (
                     <Flex key={match.id} justify="space-between" align="center" gap={3} wrap="wrap">
                         <Text fontSize="sm">#{match.id} {match.matchName} ({match.teamA} : {match.teamB})</Text>
-                        <Switch.Root
-                            colorPalette="green"
-                            checked={match.allowSubmission === true}
-                            disabled={updateSubmission.isPending || matches.isFetching}
-                            onCheckedChange={({ checked }) => updateSubmission.mutate({
-                                matchId: match.id, allowSubmission: checked,
-                            })}
-                        >
-                            <Switch.HiddenInput aria-label={`${match.matchName} 예측 접수`} />
-                            <Switch.Control />
-                            <Switch.Label>{match.allowSubmission ? "제출 받음" : "제출 안 받음"}</Switch.Label>
-                        </Switch.Root>
+                        <Flex gap={3} align="center" wrap="wrap">
+                            <MatchInfoEditor match={match} disabled={updateSubmission.isPending || matches.isFetching} />
+                            <Switch.Root
+                                colorPalette="green"
+                                checked={match.allowSubmission === true}
+                                disabled={updateSubmission.isPending || matches.isFetching}
+                                onCheckedChange={({ checked }) => updateSubmission.mutate({
+                                    matchId: match.id, allowSubmission: checked,
+                                })}
+                            >
+                                <Switch.HiddenInput aria-label={`${match.matchName} Open Submission`} />
+                                <Switch.Control />
+                                <Switch.Label>{match.allowSubmission ? "Y" : "N"}</Switch.Label>
+                            </Switch.Root>
+                        </Flex>
                     </Flex>
                 ))}
                 {updateSubmission.isError && (
-                    <Text role="alert" color="red.600">접수 상태 변경 실패: {updateSubmission.error.message}</Text>
+                    <Text role="alert" color="red.600">Failed to change submission toggle status: {updateSubmission.error.message}</Text>
                 )}
             </Stack>
+            <Flex gap={3} wrap="wrap" align="end" borderWidth="1px" rounded="sm" p={3}>
+                <Field.Root flex="1 1 180px">
+                    <Field.Label>경기 ID</Field.Label>
+                    <NativeSelect.Root size="sm" width="100%">
+                        <NativeSelect.Field
+                            value={filters.matchId}
+                            onChange={(event) => setFilters({ ...filters, matchId: event.target.value })}
+                        >
+                            <option value="">전체 경기</option>
+                            {matchOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+                        </NativeSelect.Field>
+                        <NativeSelect.Indicator />
+                    </NativeSelect.Root>
+                </Field.Root>
+                <Field.Root flex="1 1 150px" invalid={invalidUserId}>
+                    <Field.Label>사용자 ID</Field.Label>
+                    <Input
+                        size="sm"
+                        inputMode="numeric"
+                        placeholder="전체 사용자"
+                        value={filters.userId}
+                        onChange={(event) => setFilters({ ...filters, userId: event.target.value })}
+                    />
+                    <Field.ErrorText>사용자 ID는 숫자로 입력해주세요.</Field.ErrorText>
+                </Field.Root>
+                <Field.Root flex="1 1 180px">
+                    <Field.Label>제출 이력</Field.Label>
+                    <NativeSelect.Root size="sm" width="100%">
+                        <NativeSelect.Field
+                            value={filters.history}
+                            onChange={(event) => setFilters({ ...filters, history: event.target.value as PredictionFilters["history"] })}
+                        >
+                            <option value="all">전체 이력</option>
+                            <option value="latest">사용자·경기별 최신 제출</option>
+                        </NativeSelect.Field>
+                        <NativeSelect.Indicator />
+                    </NativeSelect.Root>
+                </Field.Root>
+                <Field.Root flex="1 1 150px">
+                    <Field.Label>예측 결과</Field.Label>
+                    <NativeSelect.Root size="sm" width="100%">
+                        <NativeSelect.Field
+                            value={filters.result}
+                            onChange={(event) => setFilters({ ...filters, result: event.target.value as PredictionFilters["result"] })}
+                        >
+                            <option value="all">전체 결과</option>
+                            <option value="pending">미반영</option>
+                            <option value="graded">반영됨</option>
+                        </NativeSelect.Field>
+                        <NativeSelect.Indicator />
+                    </NativeSelect.Root>
+                </Field.Root>
+                <Button size="sm" variant="outline" disabled={!hasFilters} onClick={() => setFilters(emptyPredictionFilters)}>
+                    필터 초기화
+                </Button>
+            </Flex>
             <Flex justify="space-between" align="center" gap={3} wrap="wrap">
                 <Text color="fg.muted" fontSize="sm" aria-live="polite">
-                    {predictions.isSuccess ? `전체 ${rows.length}건 · ` : ""}
-                    수정 이력 포함 · 최신 제출순 · 점수 A : B
+                    {predictions.isSuccess ? `표시 ${filteredRows.length}건 / 전체 ${rows.length}건 · ` : ""}
+                    {filters.history === "latest" ? "사용자·경기별 최신 제출" : "수정 이력 포함"} · 최신 제출순 · 점수 A : B
                 </Text>
                 <Button
                     size="sm"
@@ -95,14 +171,14 @@ export default function MatchPredictions() {
                 <Text role="alert" color="red.600">
                     예측 목록을 불러오지 못했습니다. 새로고침으로 다시 시도해주세요.
                 </Text>
-            ) : rows.length === 0 ? (
+            ) : filteredRows.length === 0 ? (
                 <Text color="fg.muted" py={8} textAlign="center">
-                    제출된 예측이 없습니다.
+                    {rows.length === 0 ? "제출된 예측이 없습니다." : "조건에 맞는 예측이 없습니다. 필터를 변경하거나 초기화해주세요."}
                 </Text>
             ) : (
                 <Table.ScrollArea width="100%" height="100%" maxW="100%">
                     <Table.Root stickyHeader colorPalette="cyan" size="sm" minW="900px">
-                        <Table.Caption>전체 경기 예측 제출 이력</Table.Caption>
+                        <Table.Caption>경기 예측 제출 목록 · {filteredRows.length}건</Table.Caption>
                         <Table.Header>
                             <Table.Row bg="bg.muted">
                                 {["예측 ID", "사용자 ID", "경기 ID", "전반 점수", "후반 점수", "전화번호", "제출 시간 (KST)", "예측 결과"].map((label) => (
@@ -113,7 +189,7 @@ export default function MatchPredictions() {
                             </Table.Row>
                         </Table.Header>
                         <Table.Body>
-                            {rows.map((prediction) => (
+                            {filteredRows.map((prediction) => (
                                 <Table.Row key={prediction.id}>
                                     <Table.Cell>{prediction.id}</Table.Cell>
                                     <Table.Cell>{prediction.userId}</Table.Cell>

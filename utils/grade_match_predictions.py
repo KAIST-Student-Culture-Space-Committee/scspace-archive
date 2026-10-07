@@ -74,7 +74,7 @@ def fetch_match_info(connection: mysql.connector.MySQLConnection, match_id: int 
         query += " WHERE id = %s"
         params = (match_id,)
     else:
-        query += " ORDER BY match_time DESC LIMIT 1"
+        query += " ORDER BY id DESC LIMIT 1"
 
     df = pd.read_sql(query, connection, params=params)
     if df.empty:
@@ -205,7 +205,7 @@ def parse_args() -> argparse.Namespace:
         "--match-id",
         type=int,
         default=None,
-        help="match_info.id to grade (default: latest by match_time)",
+        help="match_info.id to grade (default: highest match ID)",
     )
     parser.add_argument(
         "--deadline",
