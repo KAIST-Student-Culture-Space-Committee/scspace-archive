@@ -147,6 +147,19 @@ export class MatchController {
         }
     }
 
+    @Patch(':matchId/submission')
+    @UseGuards(AdminGuard)
+    async updateAllowSubmission(
+        @Param('matchId', ParseIntPipe) matchId: number,
+        @Body() body: { allowSubmission: boolean },
+    ) {
+        if (!body || typeof body.allowSubmission !== 'boolean') {
+            throw new BadRequestException('allowSubmission은 boolean 값이어야 합니다.');
+        }
+        await this.matchRepo.updateAllowSubmission(matchId, body.allowSubmission);
+        return { success: true };
+    }
+
     @Get('predictions')
     async getAllPredictions() {
         try {

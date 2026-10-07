@@ -9,7 +9,7 @@ const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
 
 async function requestMatchJson<ResponseType, RequestBody extends object>(
     endpoint: string,
-    method: "POST",
+    method: "POST" | "PATCH",
     body: RequestBody,
 ) {
     const res = await fetch(`${baseUrl}${endpoint}`, {
@@ -75,4 +75,19 @@ export function useAllMatchPredictions(enabled: boolean) {
         undefined,
         { enabled },
     );
+}
+
+export function useMatchSubmissionAdmin(enabled: boolean) {
+    const queryClient = useQueryClient();
+    const matches = useQueryApi<{ status: string; data: IMatchInfo[] }>(
+        "/match", undefined, { enabled },
+    );
+    const updateSubmission = useMutation({
+        mutationFn: ({ matchId, allowSubmission }: { matchId: number; allowSubmission: boolean }) =>
+            requestMatchJson<ISuccessResponse, { allowSubmission: boolean }>(
+                `/match/${matchId}/submission`, "PATCH", { allowSubmission },
+            ),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/match"] }),
+    });
+    return { matches, updateSubmission };
 }

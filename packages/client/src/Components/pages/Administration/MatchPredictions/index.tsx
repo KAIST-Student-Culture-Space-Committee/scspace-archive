@@ -1,9 +1,9 @@
 "use client";
 
-import { Button, Flex, Grid, Table, Text } from "@chakra-ui/react";
+import { Button, Flex, Grid, Stack, Switch, Table, Text } from "@chakra-ui/react";
 import LoadingComponent from "@scspace-client/Components/atoms/Loading";
 import { useAuth } from "@scspace-client/Hooks/auth";
-import { useAllMatchPredictions } from "@scspace-client/Hooks/match";
+import { useAllMatchPredictions, useMatchSubmissionAdmin } from "@scspace-client/Hooks/match";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { HiOutlineRefresh } from "react-icons/hi";
@@ -29,6 +29,7 @@ export default function MatchPredictions() {
     const { isAdmin, isLogined, isLoading: authLoading } = useAuth();
     const router = useRouter();
     const predictions = useAllMatchPredictions(!authLoading && isAdmin);
+    const { matches, updateSubmission } = useMatchSubmissionAdmin(!authLoading && isAdmin);
 
     useEffect(() => {
         if (authLoading) return;
@@ -42,7 +43,36 @@ export default function MatchPredictions() {
     const rows = predictions.data?.data ?? [];
 
     return (
-        <Grid height="100%" minH={0} minW={0} templateRows="auto minmax(0, 1fr)" gap={3}>
+        <Grid height="100%" minH={0} minW={0} templateRows="auto auto minmax(0, 1fr)" gap={3}>
+            <Stack borderWidth="1px" rounded="sm" p={3} gap={3} maxH="240px" overflowY="auto">
+                <Text fontWeight="semibold">경기별 예측 접수</Text>
+                {matches.isPending ? (
+                    <Text color="fg.muted">경기 정보를 불러오는 중입니다.</Text>
+                ) : matches.isError ? (
+                    <Text role="alert" color="red.600">접수 상태를 불러오지 못했습니다. 새로고침해주세요.</Text>
+                ) : matches.data?.data.length === 0 ? (
+                    <Text color="fg.muted">등록된 경기가 없습니다.</Text>
+                ) : matches.data?.data.map((match) => (
+                    <Flex key={match.id} justify="space-between" align="center" gap={3} wrap="wrap">
+                        <Text fontSize="sm">#{match.id} {match.matchName} ({match.teamA} : {match.teamB})</Text>
+                        <Switch.Root
+                            colorPalette="green"
+                            checked={match.allowSubmission === true}
+                            disabled={updateSubmission.isPending || matches.isFetching}
+                            onCheckedChange={({ checked }) => updateSubmission.mutate({
+                                matchId: match.id, allowSubmission: checked,
+                            })}
+                        >
+                            <Switch.HiddenInput aria-label={`${match.matchName} 예측 접수`} />
+                            <Switch.Control />
+                            <Switch.Label>{match.allowSubmission ? "제출 받음" : "제출 안 받음"}</Switch.Label>
+                        </Switch.Root>
+                    </Flex>
+                ))}
+                {updateSubmission.isError && (
+                    <Text role="alert" color="red.600">접수 상태 변경 실패: {updateSubmission.error.message}</Text>
+                )}
+            </Stack>
             <Flex justify="space-between" align="center" gap={3} wrap="wrap">
                 <Text color="fg.muted" fontSize="sm" aria-live="polite">
                     {predictions.isSuccess ? `전체 ${rows.length}건 · ` : ""}
@@ -52,8 +82,8 @@ export default function MatchPredictions() {
                     size="sm"
                     variant="outline"
                     rounded="sm"
-                    loading={predictions.isFetching}
-                    onClick={() => predictions.refetch()}
+                    loading={predictions.isFetching || matches.isFetching}
+                    onClick={() => { predictions.refetch(); matches.refetch(); }}
                 >
                     <HiOutlineRefresh /> 새로고침
                 </Button>

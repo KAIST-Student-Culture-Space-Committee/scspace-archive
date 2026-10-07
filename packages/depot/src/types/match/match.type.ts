@@ -2,6 +2,7 @@ export interface IMatchInfo {
     id: number;
     matchName: string;
     matchTime: Date;
+    allowSubmission: boolean;
     teamA: string;
     teamB: string;
     firstScoreA: number | null;
