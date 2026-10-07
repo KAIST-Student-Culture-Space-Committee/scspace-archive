@@ -41,8 +41,8 @@ function MatchInfoForm({ match, mutation, onClose }: {
         { name: "teamB", label: "팀 B", maxLength: 100 },
         { name: "firstScoreA", label: "전반 실제 점수 · 팀 A", type: "number" },
         { name: "firstScoreB", label: "전반 실제 점수 · 팀 B", type: "number" },
-        { name: "secondScoreA", label: "후반 실제 점수 · 팀 A", type: "number" },
-        { name: "secondScoreB", label: "후반 실제 점수 · 팀 B", type: "number" },
+        { name: "secondScoreA", label: "최종 실제 점수 · 팀 A", type: "number" },
+        { name: "secondScoreB", label: "최종 실제 점수 · 팀 B", type: "number" },
     ];
 
     return (

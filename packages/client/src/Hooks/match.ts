@@ -103,3 +103,14 @@ export function useUpdateMatchInfo() {
         }),
     });
 }
+
+export function useCreateTestPrediction() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (data: IMatchPredictionCreate & { userId: number }) =>
+            requestMatchJson<ISuccessResponse, typeof data>("/match/predictions/test", "POST", data),
+        onSuccess: () => queryClient.invalidateQueries({
+            predicate: ({ queryKey }) => typeof queryKey[0] === "string" && queryKey[0].startsWith("/match/prediction"),
+        }),
+    });
+}
