@@ -184,7 +184,7 @@ export default function MatchPredictions() {
             ) : (
                 <Table.ScrollArea width="100%" height="100%" maxW="100%">
                     <Table.Root stickyHeader colorPalette="cyan" size="sm" minW="900px">
-                        <Table.Caption>경기 예측 제출 목록 · {filteredRows.length}건</Table.Caption>
+                        <Table.Caption>승부예측 제출 목록 · {filteredRows.length}건</Table.Caption>
                         <Table.Header>
                             <Table.Row bg="bg.muted">
                                 {["예측 ID", "사용자 ID", "경기 ID", "전반 점수", "후반 점수", "전화번호", "제출 시간 (KST)", "예측 결과"].map((label) => (
