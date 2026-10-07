@@ -30,7 +30,6 @@ export default function TestPredictionForm() {
         <form onSubmit={submit}>
             <Stack borderWidth="1px" rounded="sm" p={3} gap={3}>
                 <Text fontWeight="semibold">테스트 예측 제출</Text>
-                <Text fontSize="sm" color="fg.muted">실제 제출 목록에 저장됩니다. 기존 사용자·접수 중인 경기 ID를 입력하세요. 전화번호는 TEST로 저장됩니다.</Text>
                 <Grid templateColumns={{ base: "repeat(2, 1fr)", md: "repeat(6, 1fr)" }} gap={3}>
                     {fields.map(([name, label]) => {
                         const isId = name === "userId" || name === "matchId";

@@ -9,14 +9,16 @@ const { MatchInfo } = require('../src/db/schema/match');
 const scores = { firstScoreA: 1, firstScoreB: 0, secondScoreA: 2, secondScoreB: 1 };
 const input = { matchId: 1, userId: 7, ...scores };
 
-function fixture(match) {
+function fixture(match, existing = []) {
     const events = [];
+    const conditions = [];
     const tx = {
-        select: () => ({ from: () => ({ where: () => ({
+        select: () => ({ from: () => ({ where: (condition) => { conditions.push(condition); return {
             for: async (mode) => { events.push(['lock', mode]); return match ? [match] : []; },
-        }) }) }),
+            orderBy: () => ({ limit: () => ({ for: async () => existing }) }),
+        }; } }) }),
         insert: () => ({ values: async (data) => { events.push(['insert', data]); return [{ insertId: 9 }]; } }),
-        update: () => ({ set: (data) => ({ where: async () => { events.push(['update', data]); } }) }),
+        update: () => ({ set: (data) => ({ where: async (condition) => { conditions.push(condition); events.push(['update', data]); return [{ affectedRows: 1 }]; } }) }),
     };
     const db = { transaction: async (action) => {
         events.push(['begin']);
@@ -29,7 +31,7 @@ function fixture(match) {
             throw error;
         }
     } };
-    return { repository: new MatchPredictionRepository(db), events };
+    return { repository: new MatchPredictionRepository(db), events, conditions };
 }
 
 test('matches default to submissions disabled and the flag is non-nullable', () => {
@@ -126,4 +128,36 @@ test('test phone marker is persisted and submission closure still applies', asyn
     const closed = fixture({ id: 1, allowSubmission: false });
     await assert.rejects(closed.repository.insert(data), (error) => error.getStatus() === 403);
     assert.equal(closed.events.some(([action]) => action === 'insert'), false);
+});
+
+
+test('resubmission updates scores and timestamp, resets grading, and preserves identity and phone', async () => {
+    const { repository, events } = fixture({ id: 1, allowSubmission: true }, [{ id: 42 }]);
+    const before = Date.now();
+    await repository.insert({ ...input, phoneNumber: 'TEST' });
+    assert.equal(events.some(([action]) => action === 'insert'), false);
+    const update = events.find(([action]) => action === 'update')[1];
+    assert.deepEqual(Object.keys(update).sort(), [...Object.keys(scores), 'timeSubmit', 'predictionResult'].sort());
+    assert.deepEqual({ ...update, timeSubmit: undefined }, { ...scores, timeSubmit: undefined, predictionResult: null });
+    assert.ok(update.timeSubmit.getTime() >= before && update.timeSubmit.getTime() <= Date.now());
+});
+
+test('closed match rejects resubmission without updating an existing prediction', async () => {
+    const { repository, events } = fixture({ id: 1, allowSubmission: false }, [{ id: 42 }]);
+    await assert.rejects(repository.insert(input), (error) => error.getStatus() === 403);
+    assert.equal(events.some(([action]) => action === 'insert' || action === 'update'), false);
+});
+
+
+test('lookup is scoped to user and match, and update targets the selected existing ID', async () => {
+    const { MySqlDialect } = require('drizzle-orm/mysql-core');
+    const { repository, conditions } = fixture({ id: 1, allowSubmission: true }, [{ id: 42 }]);
+    await repository.insert(input);
+    const dialect = new MySqlDialect();
+    const lookup = dialect.sqlToQuery(conditions[1]);
+    assert.match(lookup.sql, /`user_id`/);
+    assert.match(lookup.sql, /`match_id`/);
+    assert.match(lookup.sql, / and /);
+    assert.deepEqual(lookup.params, [7, 1]);
+    assert.deepEqual(dialect.sqlToQuery(conditions[2]).params, [42]);
 });

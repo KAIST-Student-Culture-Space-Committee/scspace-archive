@@ -2,7 +2,7 @@ import { Injectable, Inject, NotFoundException, ForbiddenException } from '@nest
 import { DBAsyncProvider } from 'src/db/db.provider'; 
 import { MySql2Database } from 'drizzle-orm/mysql2';
 import { schema, MatchPrediction, MatchInfo, User } from '@schema';
-import { eq, desc, InferInsertModel } from 'drizzle-orm';
+import { and, eq, desc, InferInsertModel } from 'drizzle-orm';
 import { IMatchPredictionInsert } from './match.model';
 import { IMatchInfoUpdate } from '@scspace-depot/types/match';
 
@@ -38,6 +38,21 @@ export class MatchPredictionRepository {
       }
       if (!match.allowSubmission) {
         throw new ForbiddenException('현재 이 경기의 예측 제출을 받지 않습니다.');
+      }
+      // The match lock serializes the lookup and write, including first submissions.
+      const [existing] = await tx.select({ id: MatchPrediction.id }).from(MatchPrediction)
+        .where(and(eq(MatchPrediction.userId, data.userId), eq(MatchPrediction.matchId, data.matchId)))
+        .orderBy(desc(MatchPrediction.timeSubmit), desc(MatchPrediction.id)).limit(1).for('update');
+      if (existing) {
+        const [result] = await tx.update(MatchPrediction).set({
+          firstScoreA: data.firstScoreA,
+          firstScoreB: data.firstScoreB,
+          secondScoreA: data.secondScoreA,
+          secondScoreB: data.secondScoreB,
+          timeSubmit: new Date(),
+          predictionResult: null,
+        }).where(eq(MatchPrediction.id, existing.id));
+        return result;
       }
       const [result] = await tx.insert(MatchPrediction).values(insertData);
       return result;
