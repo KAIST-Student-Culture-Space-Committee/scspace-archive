@@ -104,7 +104,7 @@ export default function MatchPredictions() {
                 {updateSubmission.isError && (
                     <Text role="alert" color="red.600">Failed to change submission toggle status: {updateSubmission.error.message}</Text>
                 )}
-                <Text fontSize="sm" color="fg.muted">접수 종료 → 실제 점수 저장 → 채점 적용. 전반·최종 각각 A:B를 모두 맞히면 1회 적중(최대 2회)입니다. 점수 수정 후에는 다시 채점 적용을 누르세요.</Text>
+                <Text fontSize="sm" color="fg.muted">1. Submission Close 2. Score 반영 3. 채점 (Score 1만 입력해도 작동함)</Text>
                 {applyGrading.isError && <Text role="alert" color="red.600">{applyGrading.error.message}</Text>}
                 {applyGrading.isSuccess && <Text role="status" color="green.600">경기 #{applyGrading.variables} 채점이 적용되었습니다.</Text>}
             </Stack>
@@ -209,7 +209,7 @@ export default function MatchPredictions() {
                         <Table.Caption>승부예측 제출 목록 · {filteredRows.length}건</Table.Caption>
                         <Table.Header>
                             <Table.Row bg="bg.muted">
-                                {["예측 ID", "사용자 ID", "경기 ID", "전반 점수", "최종 점수", "전화번호", "제출 시간 (KST)", "적중 수", "오차 합", "승무패"].map((label) => (
+                                {["예측 ID", "사용자 ID", "이름", "학번", "경기 ID", "전반 점수", "최종 점수", "전화번호", "제출 시간 (KST)", "적중 수", "오차 합", "승무패"].map((label) => (
                                     <Table.ColumnHeader key={label} whiteSpace="nowrap">
                                         {label}
                                     </Table.ColumnHeader>
@@ -221,6 +221,8 @@ export default function MatchPredictions() {
                                 <Table.Row key={prediction.id}>
                                     <Table.Cell>{prediction.id}</Table.Cell>
                                     <Table.Cell>{prediction.userId}</Table.Cell>
+                                    <Table.Cell whiteSpace="nowrap">{prediction.userName || "—"}</Table.Cell>
+                                    <Table.Cell>{prediction.studentNumber ?? "—"}</Table.Cell>
                                     <Table.Cell>{prediction.matchId}</Table.Cell>
                                     <Table.Cell whiteSpace="nowrap">{prediction.firstScoreA} : {prediction.firstScoreB}</Table.Cell>
                                     <Table.Cell whiteSpace="nowrap">{prediction.secondScoreA} : {prediction.secondScoreB}</Table.Cell>
