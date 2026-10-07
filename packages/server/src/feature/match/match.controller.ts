@@ -189,6 +189,20 @@ export class MatchController {
         }
     }
 
+    @Post()
+    @UseGuards(AdminGuard)
+    async createMatchInfo(@Body() body: unknown) {
+        const data = this.parseMatchInfoUpdate(body);
+        if (!data.matchName || !data.teamA || !data.teamB ||
+            Object.keys(data).some((key) => !['matchName', 'teamA', 'teamB'].includes(key))) {
+            throw new BadRequestException('경기명, 팀 A, 팀 B를 입력해주세요.');
+        }
+        const id = await this.matchRepo.createMatchInfo({
+            matchName: data.matchName, teamA: data.teamA, teamB: data.teamB,
+        });
+        return { success: true, id };
+    }
+
     @Patch(':matchId')
     @UseGuards(AdminGuard)
     async updateMatchInfo(

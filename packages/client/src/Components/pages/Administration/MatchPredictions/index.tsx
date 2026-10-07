@@ -10,6 +10,7 @@ import { HiOutlineRefresh } from "react-icons/hi";
 import { emptyPredictionFilters, filterPredictions, PredictionFilters } from "./filters";
 import MatchInfoEditor from "./MatchInfoEditor";
 import TestPredictionForm from "./TestPredictionForm";
+import MatchCreateDialog from "./MatchCreateDialog";
 
 const dateFormatter = new Intl.DateTimeFormat("ko-KR", {
     timeZone: "Asia/Seoul",
@@ -63,7 +64,10 @@ export default function MatchPredictions() {
     return (
         <Grid height="100%" minH={0} minW={0} overflowY="auto" templateRows="auto auto auto auto minmax(160px, 1fr)" gap={3}>
             <Stack borderWidth="1px" rounded="sm" p={3} gap={3} maxH="240px" overflowY="auto">
-                <Text fontWeight="semibold">경기 정보 및 접수 관리</Text>
+                <Flex justify="space-between" align="center" gap={3}>
+                    <Text fontWeight="semibold">경기 정보 및 접수 관리</Text>
+                    <MatchCreateDialog />
+                </Flex>
                 {matches.isPending ? (
                     <Text color="fg.muted">loading match info...</Text>
                 ) : matches.isError ? (
@@ -180,7 +184,7 @@ export default function MatchPredictions() {
             ) : (
                 <Table.ScrollArea width="100%" height="100%" maxW="100%">
                     <Table.Root stickyHeader colorPalette="cyan" size="sm" minW="900px">
-                        <Table.Caption>경기 예측 제출 목록 · {filteredRows.length}건</Table.Caption>
+                        <Table.Caption>승부예측 제출 목록 · {filteredRows.length}건</Table.Caption>
                         <Table.Header>
                             <Table.Row bg="bg.muted">
                                 {["예측 ID", "사용자 ID", "경기 ID", "전반 점수", "후반 점수", "전화번호", "제출 시간 (KST)", "예측 결과"].map((label) => (

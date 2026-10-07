@@ -196,7 +196,7 @@ export function useRedirects() {
                     },
                     {
                         href: "/admin/match-prediction",
-                        label: "경기 예측 리더보드",
+                        label: "승부예측 대시보드",
                         helperText: "Match Prediction Leaderboard"
                     },
                     {

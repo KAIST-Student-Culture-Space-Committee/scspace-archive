@@ -4,7 +4,7 @@ import { MySql2Database } from 'drizzle-orm/mysql2';
 import { schema, MatchPrediction, MatchInfo, User } from '@schema';
 import { and, eq, desc, InferInsertModel } from 'drizzle-orm';
 import { IMatchPredictionInsert } from './match.model';
-import { IMatchInfoUpdate } from '@scspace-depot/types/match';
+import { IMatchInfoCreate, IMatchInfoUpdate } from '@scspace-depot/types/match';
 
 @Injectable()
 export class MatchPredictionRepository {
@@ -57,6 +57,15 @@ export class MatchPredictionRepository {
       const [result] = await tx.insert(MatchPrediction).values(insertData);
       return result;
     });
+  }
+
+  async createMatchInfo(data: IMatchInfoCreate) {
+    const [result] = await this.db.insert(MatchInfo).values({
+      matchName: data.matchName, teamA: data.teamA, teamB: data.teamB,
+      allowSubmission: false,
+      firstScoreA: null, firstScoreB: null, secondScoreA: null, secondScoreB: null,
+    });
+    return result.insertId;
   }
 
   async updateMatchInfo(matchId: number, data: IMatchInfoUpdate) {

@@ -77,3 +77,32 @@ test('missing match returns 404 without updating', async () => {
     await assert.rejects(repository.updateMatchInfo(99, { teamA: 'A' }), (error) => error.getStatus() === 404);
     assert.deepEqual(updates, []);
 });
+
+test('match creation requires admin, trims names, and returns the generated ID', async () => {
+    assert.ok(Reflect.getMetadata('__guards__', MatchController.prototype.createMatchInfo).includes(AdminGuard));
+    const inserted = [];
+    const controller = new MatchController({ createMatchInfo: async (data) => { inserted.push(data); return 12; } });
+    assert.deepEqual(await controller.createMatchInfo({ matchName: ' Final ', teamA: ' A ', teamB: ' B ' }), { success: true, id: 12 });
+    assert.deepEqual(inserted, [{ matchName: 'Final', teamA: 'A', teamB: 'B' }]);
+    for (const body of [null, {}, { matchName: 'Final', teamA: 'A' },
+        { matchName: ' ', teamA: 'A', teamB: 'B' },
+        { matchName: 'Final', teamA: 'A', teamB: 'x'.repeat(101) },
+        { matchName: 'Final', teamA: 'A', teamB: 'B', allowSubmission: true },
+        { matchName: 'Final', teamA: 'A', teamB: 'B', firstScoreA: 1 },
+    ]) {
+        await assert.rejects(controller.createMatchInfo(body), (error) => error.getStatus() === 400);
+    }
+    assert.equal(inserted.length, 1);
+});
+
+test('new match starts closed with all actual scores unset', async () => {
+    const inserted = [];
+    const repository = new MatchPredictionRepository({
+        insert: () => ({ values: async (data) => { inserted.push(data); return [{ insertId: 12 }]; } }),
+    });
+    assert.equal(await repository.createMatchInfo({ matchName: 'Final', teamA: 'A', teamB: 'B' }), 12);
+    assert.deepEqual(inserted, [{
+        matchName: 'Final', teamA: 'A', teamB: 'B', allowSubmission: false,
+        firstScoreA: null, firstScoreB: null, secondScoreA: null, secondScoreB: null,
+    }]);
+});

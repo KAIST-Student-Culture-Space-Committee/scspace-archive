@@ -2,7 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useQueryApi } from "./api";
-import { IMatchInfo, IMatchInfoUpdate, IMatchPrediction, IMatchPredictionCreate, IMatchPredictionWithInfo } from "@scspace-depot/types/match";
+import { IMatchInfo, IMatchInfoCreate, IMatchInfoUpdate, IMatchPrediction, IMatchPredictionCreate, IMatchPredictionWithInfo } from "@scspace-depot/types/match";
 import { ISuccessResponse } from "@scspace-depot/types/common";
 
 const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
@@ -90,6 +90,15 @@ export function useMatchSubmissionAdmin(enabled: boolean) {
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/match"] }),
     });
     return { matches, updateSubmission };
+}
+
+export function useCreateMatchInfo() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (data: IMatchInfoCreate) =>
+            requestMatchJson<ISuccessResponse & { id: number }, IMatchInfoCreate>("/match", "POST", data),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/match"] }),
+    });
 }
 
 export function useUpdateMatchInfo() {
