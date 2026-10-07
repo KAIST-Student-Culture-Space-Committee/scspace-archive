@@ -338,8 +338,8 @@ export default function MatchPredictMainPage() {
 
     const activeMatch = allMatches.data?.data?.find((match) => (
         match.firstScoreA === null &&
-        match.secondScoreB === null &&
-        match.firstScoreA === null &&
+        match.firstScoreB === null &&
+        match.secondScoreA === null &&
         match.secondScoreB === null &&
         new Date(match.matchTime).getTime() > Date.now()
     )) ?? allMatches.data?.data?.[0];
