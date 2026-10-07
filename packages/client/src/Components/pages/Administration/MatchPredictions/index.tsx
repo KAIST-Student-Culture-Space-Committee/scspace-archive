@@ -104,7 +104,7 @@ export default function MatchPredictions() {
                 {updateSubmission.isError && (
                     <Text role="alert" color="red.600">Failed to change submission toggle status: {updateSubmission.error.message}</Text>
                 )}
-                <Text fontSize="sm" color="fg.muted">접수 종료 → 실제 점수 저장 → 채점 적용. 점수 수정 후에는 다시 채점 적용을 누르세요.</Text>
+                <Text fontSize="sm" color="fg.muted">접수 종료 → 실제 점수 저장 → 채점 적용. 전반·최종 각각 A:B를 모두 맞히면 1회 적중(최대 2회)입니다. 점수 수정 후에는 다시 채점 적용을 누르세요.</Text>
                 {applyGrading.isError && <Text role="alert" color="red.600">{applyGrading.error.message}</Text>}
                 {applyGrading.isSuccess && <Text role="status" color="green.600">경기 #{applyGrading.variables} 채점이 적용되었습니다.</Text>}
             </Stack>
