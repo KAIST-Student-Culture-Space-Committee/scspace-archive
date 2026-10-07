@@ -9,8 +9,13 @@ export function comparedScoreCount(actual: IMatchActualScores): number {
 export function gradePrediction(prediction: IMatchPredictionUpdate, actual: IMatchActualScores) {
   const fields = scoreFields.filter((field) => actual[field] != null);
   if (!fields.length) return { correctScoreCount: null, scoreDiffAbs: null };
+  const pairs = [['firstScoreA', 'firstScoreB'], ['secondScoreA', 'secondScoreB']] as const;
   return {
-    correctScoreCount: fields.filter((field) => prediction[field] === actual[field]).length,
+    // Each complete A:B scoreline earns one hit, never one hit per team.
+    correctScoreCount: pairs.filter(([a, b]) =>
+      actual[a] != null && actual[b] != null &&
+      prediction[a] === actual[a] && prediction[b] === actual[b],
+    ).length,
     scoreDiffAbs: fields.reduce((sum, field) => sum + Math.abs(prediction[field] - actual[field]!), 0),
   };
 }

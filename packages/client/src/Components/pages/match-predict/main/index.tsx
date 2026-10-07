@@ -246,7 +246,7 @@ const RANK_GLOWS = [
 
 function ScoringCard() {
     const rows = [
-        { rank: "1 순위", desc: "맞힌 스코어 개수" },
+        { rank: "1 순위", desc: "전반·최종 스코어 완전 적중 수 (최대 2)" },
         { rank: "2 순위", desc: "실제 점수와 오차의 절댓값 합" },
         { rank: "3 순위", desc: "승무패 적중 여부" },
     ];
