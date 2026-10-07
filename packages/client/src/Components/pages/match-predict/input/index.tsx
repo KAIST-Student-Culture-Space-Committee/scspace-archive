@@ -156,7 +156,7 @@ export default function MatchPredictInputPage() {
         }
     }, [isLogined, isLoading, linkPush]);
 
-    const activeMatch = allMatches.data?.data?.find((match) => (
+    const activeMatch = allMatches.data?.data?.find((match) => match.allowSubmission) ?? allMatches.data?.data?.find((match) => (
         match.firstScoreA === null &&
         match.firstScoreB === null &&
         match.secondScoreA === null &&
@@ -187,6 +187,10 @@ export default function MatchPredictInputPage() {
     };
 
     function validate() {
+        if (!activeMatch?.allowSubmission) {
+            alert("현재 이 경기의 예측 제출을 받지 않습니다.");
+            return false;
+        }
         if ([firstA, firstB, secondA, secondB].some((v) => v === "")) {
             alert("모든 점수를 입력해주세요.");
             return false;
@@ -295,10 +299,11 @@ export default function MatchPredictInputPage() {
                             _hover={{ bg: "rgba(255,255,255,0.08)" }}
                             _active={{ bg: "rgba(255,255,255,0.05)" }}
                             onClick={hasSubmitted ? handleUpdate : handleSubmit}
+                            disabled={!activeMatch?.allowSubmission || allMatches.isError}
                             loading={allMatches.isLoading || myPredictions.isLoading || isCreating}
                             style={{ boxShadow: "0 0 10px rgba(255,255,255,0.4), 0 0 15px rgba(255,255,255,0.2)" }}
                         >
-                            {hasSubmitted ? "수정하기" : "Submit"}
+                            {!activeMatch?.allowSubmission ? "현재 제출을 받지 않습니다" : hasSubmitted ? "수정하기" : "Submit"}
                         </Button>
                     </Flex>
                 </Flex>

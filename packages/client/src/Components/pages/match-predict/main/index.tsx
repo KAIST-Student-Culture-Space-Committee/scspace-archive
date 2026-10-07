@@ -336,7 +336,7 @@ export default function MatchPredictMainPage() {
     const { allMatches } = useMatchAPI();
     const { myPredictions } = useMatchPredictionAPI(userInfo?.id);
 
-    const activeMatch = allMatches.data?.data?.find((match) => (
+    const activeMatch = allMatches.data?.data?.find((match) => match.allowSubmission) ?? allMatches.data?.data?.find((match) => (
         match.firstScoreA === null &&
         match.firstScoreB === null &&
         match.secondScoreA === null &&
@@ -349,6 +349,10 @@ export default function MatchPredictMainPage() {
     )?.prediction;
 
     function handleInputClick() {
+        if (!activeMatch?.allowSubmission || allMatches.isError) {
+            alert("현재 이 경기의 예측 제출을 받지 않습니다.");
+            return;
+        }
         if (!isLogined) {
             sessionStorage.setItem("loginRedirect", "/match-predict/input");
             linkPush("/login");

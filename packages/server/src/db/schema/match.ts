@@ -1,4 +1,4 @@
-import { mysqlTable, int, varchar, datetime, timestamp, index } from 'drizzle-orm/mysql-core';
+import { mysqlTable, int, varchar, datetime, timestamp, index, boolean } from 'drizzle-orm/mysql-core';
 import { User } from './user'; // 기존 프로젝트의 User 스키마 경로에 맞게 임포트
 
 // 1. 경기 정보 테이블
@@ -6,6 +6,7 @@ export const MatchInfo = mysqlTable('match_info', {
   id: int('id').autoincrement().primaryKey(),
   matchName: varchar('match_name', { length: 255 }).notNull(),
   matchTime: datetime('match_time').notNull(),
+  allowSubmission: boolean('allow_submission').notNull().default(false),
   teamA: varchar('team_a', { length: 100 }).notNull(),
   teamB: varchar('team_b', { length: 100 }).notNull(),
   firstScoreA: int('first_score_a'),
