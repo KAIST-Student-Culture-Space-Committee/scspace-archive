@@ -183,7 +183,7 @@ export default function MatchPredictions() {
             <Flex justify="space-between" align="center" gap={3} wrap="wrap">
                 <Text color="fg.muted" fontSize="sm" aria-live="polite">
                     {predictions.isSuccess ? `표시 ${filteredRows.length}건 / 전체 ${rows.length}건 · ` : ""}
-                    {filters.history === "latest" ? "사용자·경기별 최신 제출" : "수정 이력 포함"} · {filters.sort === "score" ? "적중 수 ↓ · 오차 합 ↑ · 승무패 적중 우선" : "최신 제출순"} · 점수 A : B
+                    {filters.history === "latest" ? "사용자·경기별 최신 제출" : "수정 이력 포함"} · {filters.sort === "score" ? "최종 적중 · 전반 적중 · 승무패 · 골득실 오차 ↑ · 오차 합 ↑" : "최신 제출순"} · 점수 A : B
                 </Text>
                 <Button
                     size="sm"

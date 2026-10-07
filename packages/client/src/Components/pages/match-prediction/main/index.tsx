@@ -20,7 +20,7 @@ export default function MatchPredictionMainPage() {
         <Stack maxW="1440px" mx="auto" px={{ base: 4, md: 12 }} pt={7} pb={0} gap={6}>
             <Stack align="center" gap={3}>
                 <Text color={colors.lime} fontWeight="bold" fontSize={{ base: "10px", md: "14px" }} letterSpacing={{ base: "3px", md: "6px" }}>SCORE PREDICTION</Text>
-                <Text as="h1" fontSize={{ base: "32px", md: "60px" }} lineHeight={{ base: "44px", md: "80px" }} fontWeight="black" textAlign="center">Today's match,<Box as="span" display={{ base: "block", md: "inline" }} color={colors.lime}> what's your call?</Box></Text>
+                <Text as="h1" fontSize={{ base: "32px", md: "60px" }} lineHeight={{ base: "44px", md: "80px" }} fontWeight="black" textAlign="center">Today&apos;s match,<Box as="span" display={{ base: "block", md: "inline" }} color={colors.lime}> what&apos;s your call?</Box></Text>
                 <Flex align="center" justify="center" gap={{ base: 3, md: 9 }} w="full" maxW="744px">
                     <Stack flex={1} maxW={{ base: "100px", md: "180px" }} align="center" gap={0}><TeamLogo name={match?.teamA ?? "Team A"} size={{ base: "100px", md: "160px" }} /><Text fontSize={{ base: "14px", md: "22px" }} fontWeight="bold" textAlign="center">{match?.teamA ?? "Team A"}</Text></Stack>
                     <Stack flex={1} maxW="260px" align="center" gap={0}><Text fontSize={{ base: "56px", md: "104px" }} lineHeight={{ base: "72px", md: "124px" }} fontWeight="black" fontStyle="italic" fontFamily="var(--match-number-font), sans-serif">VS</Text><Text fontSize={{ base: "12px", md: "23px" }} textAlign="center" fontWeight="semibold">{timeLabel}<Box as="span" display={{ base: "block", md: "inline" }}> {hourLabel} KST</Box></Text></Stack>
