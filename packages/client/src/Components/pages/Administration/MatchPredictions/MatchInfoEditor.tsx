@@ -2,7 +2,7 @@
 
 import { Button, Dialog, Field, Flex, Grid, Input, Portal, Stack, Text } from "@chakra-ui/react";
 import MatchStartTime from "./MatchStartTime";
-import { getMatchNow } from "@scspace-client/Components/pages/match-predict/match-time";
+import { getMatchNow } from "@scspace-client/Components/pages/match-prediction/match-time";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import type { IMatchInfo } from "@scspace-depot/types/match";

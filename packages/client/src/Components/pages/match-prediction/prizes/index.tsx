@@ -25,7 +25,7 @@ export default function MatchPrizes() {
                 {[["4th–10th · 7 winners", "Fried Chicken Voucher", "Share the taste of victory."], ["11th–30th · 20 winners", "Digital Coffee Voucher", "A cup to brighten your day."]].map(([rank, title, description]) => <Flex key={title} bg={colors.surface} border="1px solid" borderColor={colors.border} rounded="8px" p={4} gap={4} align="center" minH="130px"><Flex bg={colors.background} border="1px solid" borderColor={colors.border} rounded="6px" w="104px" h="94px" flexShrink={0} align="center" justify="center"><Text color={colors.muted} fontSize="12px">Prize Image</Text></Flex><Stack gap={2}><Text fontWeight="bold" fontSize="14px" color={colors.lime}>{rank}</Text><Text fontWeight="bold">{title}</Text><Text fontSize="12px" color={colors.muted}>{description}</Text></Stack></Flex>)}
             </Grid></Stack>
             <Card><Text as="h2" fontWeight="bold">Claiming Your Prize</Text><Text color={colors.muted} fontSize="14px">Prizes are awarded based on the final rankings.<br />Winners and collection details will be announced after the event.</Text></Card>
-            <Button alignSelf="start" w={{ base: "full", md: "340px" }} h="56px" bg={colors.lime} color={colors.background} fontWeight="bold" onClick={() => linkPush("/match-predict/leaderboard")}>View Live Rankings →</Button>
+            <Button alignSelf="start" w={{ base: "full", md: "340px" }} h="56px" bg={colors.lime} color={colors.background} fontWeight="bold" onClick={() => linkPush("/match-prediction/leaderboard")}>View Live Rankings →</Button>
         </Stack>
     </MatchShell>;
 }

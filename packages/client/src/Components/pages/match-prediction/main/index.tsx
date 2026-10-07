@@ -6,15 +6,15 @@ import { useLinkPush } from "@scspace-client/Hooks/api";
 import { dateUtils } from "@scspace-client/Hooks/utils";
 import { assets, Card, colors, countdown, kickoffTimestamp, MatchShell, TeamLogo, useEventMatch } from "../shared";
 
-export default function MatchPredictMainPage() {
+export default function MatchPredictionMainPage() {
     const { isLogined } = useAuth();
     const { linkPush } = useLinkPush();
     const { match, closed, open, allMatches, wallNow } = useEventMatch();
     const timeLabel = match?.startTime == null ? "Kickoff time not set" : new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Seoul", month: "2-digit", day: "2-digit", weekday: "short" }).format(kickoffTimestamp(match.startTime));
     const hourLabel = match?.startTime == null ? "" : dateUtils().getString(match.startTime).slice(11);
     function enter() {
-        if (!isLogined) { sessionStorage.setItem("loginRedirect", "/match-predict/input"); linkPush("/login"); }
-        else linkPush("/match-predict/input");
+        if (!isLogined) { sessionStorage.setItem("loginRedirect", "/match-prediction/input"); linkPush("/login"); }
+        else linkPush("/match-prediction/input");
     }
     return <MatchShell active="main" event announcement={closed ? "GOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOD LUCK!" : "Make your prediction before kickoff."}>
         <Stack maxW="1440px" mx="auto" px={{ base: 4, md: 12 }} pt={7} pb={0} gap={6}>

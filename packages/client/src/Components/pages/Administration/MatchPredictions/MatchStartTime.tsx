@@ -3,7 +3,7 @@
 import { Grid, Text } from "@chakra-ui/react";
 import { DateForm, HourForm } from "@scspace-client/Components/organisms/Reservation/Forms";
 import { dateUtils } from "@scspace-client/Hooks/utils";
-import { getMatchNow } from "@scspace-client/Components/pages/match-predict/match-time";
+import { getMatchNow } from "@scspace-client/Components/pages/match-prediction/match-time";
 
 export default function MatchStartTime({ value, onChange, disabled = false }: {
     value: number | null;

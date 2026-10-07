@@ -10,7 +10,7 @@ import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { getMatchNow } from "./match-time";
 
-export const assets = "/img/match-predict/final";
+export const assets = "/img/match-prediction/final";
 export const colors = { background: "#090c10", surface: "#151b22", text: "#f5f7fa", muted: "#9ca6b2", lime: "#dcff00", border: "#303842" };
 const tabs = [ ["Event Info", "main"], ["Leaderboard", "leaderboard"], ["Prizes", "prizes"], ["My Prediction", "input"] ];
 
@@ -20,11 +20,11 @@ export function MatchHeader({ active }: { active: string }) {
     return <Flex as="header" px={{ base: 4, lg: 7 }} py={{ base: 0, lg: 3 }} columnGap={6} rowGap={0} align="center" justify="space-between" wrap="wrap" bg={colors.background}>
         <Text display="flex" gap="4px" alignItems="center" flex={{ base: 1, lg: "1 1 193px" }} h={{ base: "64px", lg: "52px" }} fontSize={{ base: "22px", lg: "28px" }} fontWeight="black" fontStyle="italic" fontFamily="var(--match-number-font), sans-serif">SCSPACE<Box as="span" color={colors.lime}>PLAY</Box></Text>
         <Grid templateColumns="repeat(4, 1fr)" gap={{ base: 0, lg: 4 }} order={{ base: 3, lg: 0 }} w={{ base: "calc(100% + 32px)", lg: "560px" }} mx={{ base: -4, lg: 0 }} flexShrink={0}>
-            {tabs.map(([label, route]) => <Button key={route} variant="plain" rounded={0} h={{ base: "46px", lg: "52px" }} px={0} fontSize={{ base: "12px", lg: "16px" }} fontWeight="bold" color={active === route ? colors.lime : colors.muted} borderBottom={active === route ? `2px solid ${colors.lime}` : "2px solid transparent"} aria-current={active === route ? "page" : undefined} onClick={() => linkPush(`/match-predict/${route}`)}>{label}</Button>)}
+            {tabs.map(([label, route]) => <Button key={route} variant="plain" rounded={0} h={{ base: "46px", lg: "52px" }} px={0} fontSize={{ base: "12px", lg: "16px" }} fontWeight="bold" color={active === route ? colors.lime : colors.muted} borderBottom={active === route ? `2px solid ${colors.lime}` : "2px solid transparent"} aria-current={active === route ? "page" : undefined} onClick={() => linkPush(`/match-prediction/${route}`)}>{label}</Button>)}
         </Grid>
         <Flex flex={{ base: "0 1 auto", lg: "1 1 193px" }} justify="end" maxW={{ base: "44%", lg: "none" }}>
             {isLogined ? <Text truncate rounded="full" bg={colors.surface} px={3} py={2} fontSize="14px">{userInfo?.nameKr || userInfo?.nameEn}</Text>
-                : <Button variant="plain" color={colors.text} onClick={() => { sessionStorage.setItem("loginRedirect", `/match-predict/${active}`); linkPush("/login"); }}>Log in</Button>}
+                : <Button variant="plain" color={colors.text} onClick={() => { sessionStorage.setItem("loginRedirect", `/match-prediction/${active}`); linkPush("/login"); }}>Log in</Button>}
         </Flex>
     </Flex>;
 }

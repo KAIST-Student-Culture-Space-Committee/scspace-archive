@@ -13,7 +13,7 @@ import { getMatchNow } from "../match-time";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 
-const assets = "/img/match-predict/final";
+const assets = "/img/match-prediction/final";
 const colors = { background: "#090c10", surface: "#151b22", text: "#f5f7fa", muted: "#9ca6b2", lime: "#dcff00", border: "#303842" };
 const consentText = [
     "1. Personal data collected: Mobile phone number",
@@ -76,7 +76,7 @@ function ScoreSection({ title, teamA, teamB, valueA, valueB, onChangeA, onChange
     </Stack>;
 }
 
-export default function MatchPredictInputPage() {
+export default function MatchPredictionInputPage() {
     const { isLogined, isLoading, userInfo } = useAuth();
     const { linkPush } = useLinkPush();
     const { allMatches, createPrediction, isCreating } = useMatchAPI();
@@ -98,7 +98,7 @@ export default function MatchPredictInputPage() {
     }, []);
     useEffect(() => {
         if (isLoading || isLogined) return;
-        sessionStorage.setItem("loginRedirect", "/match-predict/input");
+        sessionStorage.setItem("loginRedirect", "/match-prediction/input");
         linkPush("/login");
     }, [isLogined, isLoading, linkPush]);
     useEffect(() => {
@@ -126,7 +126,7 @@ export default function MatchPredictInputPage() {
         setError("");
         createPrediction({ matchId: match.id, firstScoreA: Number(scores.firstScoreA), firstScoreB: Number(scores.firstScoreB),
             secondScoreA: Number(scores.secondScoreA), secondScoreB: Number(scores.secondScoreB), phoneNumber: phone, privacyConsent: true }, {
-            onSuccess: () => { toaster.success({ title: existing ? "Prediction updated" : "Prediction submitted" }); linkPush("/match-predict/main"); },
+            onSuccess: () => { toaster.success({ title: existing ? "Prediction updated" : "Prediction submitted" }); linkPush("/match-prediction/main"); },
             onError: (failure) => { setError(failure.message); allMatches.refetch(); },
         });
     }
@@ -141,7 +141,7 @@ export default function MatchPredictInputPage() {
         <Box backgroundImage={`url('${assets}/stadium.png')`} backgroundSize="cover" backgroundPosition="center" px={{ base: 4, md: 12 }} py={8}>
             <Box as="form" onSubmit={submit} maxW="904px" mx="auto" bg={colors.background} border="1px solid" borderColor={colors.border} rounded="8px" px={{ base: 4, md: 10 }} py={6}>
                 <Stack gap={{ base: 6, md: 5 }}>
-                    <Button variant="plain" alignSelf="start" color={colors.muted} p={0} fontSize="14px" onClick={() => linkPush("/match-predict/main")}>← Back to Event Info</Button>
+                    <Button variant="plain" alignSelf="start" color={colors.muted} p={0} fontSize="14px" onClick={() => linkPush("/match-prediction/main")}>← Back to Event Info</Button>
                     <Stack align="center" gap={1}><Text as="h1" fontSize={{ base: "28px", md: "40px" }} fontWeight="black" textAlign="center">{closed ? "My Prediction" : "Predict the Score"}</Text>
                         <Text color={colors.muted} textAlign="center" fontSize={{ base: "14px", md: "20px" }}>{match ? `${match.teamA} vs ${match.teamB}` : "Match prediction"} · {startLabel}</Text></Stack>
                     {status && <Text role={allMatches.isError ? "alert" : "status"} color={colors.muted}>{status}</Text>}
@@ -165,7 +165,7 @@ export default function MatchPredictInputPage() {
                     <Stack borderTop="1px solid" borderColor={colors.border} pt={5} gap={3} align="center">
                         <Flex gap={2} align="center" color="#ff7a1a"><Image src={`${assets}/clock.svg`} alt="" /><Text fontWeight="bold">{closed ? "OVER" : `Deadline ${startLabel}`}</Text></Flex>
                         {error && <Text role="alert" color="orange.300" w="full">{error}</Text>}
-                        {closed ? <Button w="full" minH="64px" bg={colors.lime} color={colors.background} fontWeight="black" onClick={() => linkPush("/match-predict/main")}>HAVE FUN :D <Image src={`${assets}/chevron.svg`} alt="" /></Button>
+                        {closed ? <Button w="full" minH="64px" bg={colors.lime} color={colors.background} fontWeight="black" onClick={() => linkPush("/match-prediction/main")}>HAVE FUN :D <Image src={`${assets}/chevron.svg`} alt="" /></Button>
                             : <Button type="submit" w="full" minH="70px" h="auto" whiteSpace="normal" bg={colors.lime} color={colors.background} fontSize={{ base: "20px", md: "23px" }} fontWeight="black"
                                 loading={busy} disabled={!canSubmit || !privacyConsent || myPredictions.isError || allMatches.isError || busy}>Agree and {existing ? "Update" : "Make"} a Prediction <Image src={`${assets}/chevron.svg`} alt="" /></Button>}
                         <Text color={colors.muted} fontSize="14px">{closed ? "View your entry" : "View or edit your entry"}</Text>

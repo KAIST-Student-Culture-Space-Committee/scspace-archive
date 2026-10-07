@@ -2,7 +2,7 @@
 
 import { Button, Field, Flex, Grid, Input, NativeSelect, Stack, Switch, Table, Text } from "@chakra-ui/react";
 import LoadingComponent from "@scspace-client/Components/atoms/Loading";
-import { getMatchNow } from "@scspace-client/Components/pages/match-predict/match-time";
+import { getMatchNow } from "@scspace-client/Components/pages/match-prediction/match-time";
 import { dateUtils } from "@scspace-client/Hooks/utils";
 import { useAuth } from "@scspace-client/Hooks/auth";
 import { useAllMatchPredictions, useApplyMatchGrading, useMatchSubmissionAdmin } from "@scspace-client/Hooks/match";
