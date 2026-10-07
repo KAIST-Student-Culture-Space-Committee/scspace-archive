@@ -10,8 +10,6 @@ export const DBProvider = [
     useFactory: async () => {
       config();
       const { DB_HOST, DB_PORT, DB_USER, DB_PWD, DB_NAME } = process.env;
-      // const DB_URL = `mysql://${DB_USER}:${DB_PWD}@${DB_HOST}:${DB_PORT}/${DB_NAME}`;
-      // Logger.log(DB_URL);;
       const pool = await mysql.createPool({
         host: DB_HOST,
         port: Number(DB_PORT), // 포트를 숫자로 변환

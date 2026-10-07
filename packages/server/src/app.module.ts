@@ -16,6 +16,7 @@ import { LotteryModule } from './feature/lottery/lottery.module';
 import { ScheduleModule } from "@nestjs/schedule";
 import { FileModule } from './tools/file/file.module';
 import { PasspinModule } from "./feature/passpin/passpin.module";
+import { MatchModule } from './feature/match/match.module';
 
 @Module({
   imports: [
@@ -35,7 +36,8 @@ import { PasspinModule } from "./feature/passpin/passpin.module";
     MailModule,
     LotteryModule,
     FileModule,
-    PasspinModule
+    PasspinModule,
+    MatchModule,
   ],
   controllers: [AppController],
   providers: [AppService],

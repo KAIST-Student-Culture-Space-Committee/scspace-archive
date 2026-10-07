@@ -5,6 +5,9 @@
 
 # DB
 /src/db/migrations/*
+!/src/db/migrations/*.sql
+!/src/db/migrations/meta/
+!/src/db/migrations/meta/*.json
 
 # Logs
 logs

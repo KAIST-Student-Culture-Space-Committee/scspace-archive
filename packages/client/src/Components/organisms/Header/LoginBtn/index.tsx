@@ -1,4 +1,4 @@
-"uce client"
+"use client"
 
 import { useAuth, useAuthAPI } from "@scspace-client/Hooks/auth";
 import { Button, Menu, Portal } from "@chakra-ui/react";

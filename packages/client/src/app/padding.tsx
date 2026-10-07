@@ -14,9 +14,9 @@ export default function LayoutBox({ children }: {
             scrollbar="hidden"
             overflowY="hidden"
             scrollBehavior="smooth"
-            bg="bg.subtle"
-            px={pathname === "/" ? 0 : 4}
-            py={pathname === "/" ? 0 : 6}
+            bg={pathname.startsWith("/match-predict") ? "black" : "bg.subtle"}
+            px={pathname === "/" || pathname.startsWith("/match-predict") ? 0 : 4}
+            py={pathname === "/" || pathname.startsWith("/match-predict") ? 0 : 6}
         >
             {children}
         </Box>

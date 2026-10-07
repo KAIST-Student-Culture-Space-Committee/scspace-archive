@@ -24,11 +24,13 @@ export const useLinkPush = () => {
 export const useQueryApi = <ResponseType>(
   endpoint: string,
   params?: object,
+  options?: { enabled?: boolean },
 ) => {
   const queryKey = [endpoint, params || {}];
 
   return useQuery<ResponseType>({
     queryKey,
+    enabled: options?.enabled ?? true,
     queryFn: async () => {
       const queryString = params
         ? "?" +

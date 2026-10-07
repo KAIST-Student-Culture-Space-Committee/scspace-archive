@@ -10,6 +10,7 @@ export * from './types/reservation';
 export * from './types/space';
 export * from './types/user';
 export * from './types/passpin';
+export * from './types/match';
 
 // Export enums
 export * from './enums/article.enum';
