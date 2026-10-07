@@ -92,15 +92,14 @@ export default function MatchPredictions() {
                             </Button>
                             <Switch.Root
                                 colorPalette="green"
-                                checked={match.allowSubmission === true && match.startTime != null && now < match.startTime}
-                                disabled={match.startTime == null || now >= match.startTime || updateSubmission.isPending || applyGrading.isPending || matches.isFetching}
+                                checked={match.allowSubmission === true && match.startTime != null}
+                                disabled={match.startTime == null || updateSubmission.isPending || applyGrading.isPending || matches.isFetching}
                                 onCheckedChange={({ checked }) => updateSubmission.mutate({
                                     matchId: match.id, allowSubmission: checked,
                                 })}
                             >
                                 <Switch.HiddenInput aria-label={`${match.matchName} Open Submission`} />
                                 <Switch.Control />
-                                <Switch.Label>{match.allowSubmission && match.startTime != null && now < match.startTime ? "Y" : "N"}</Switch.Label>
                             </Switch.Root>
                         </Flex>
                     </Flex>
