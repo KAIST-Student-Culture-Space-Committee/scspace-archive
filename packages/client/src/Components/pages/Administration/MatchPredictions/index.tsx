@@ -212,7 +212,7 @@ export default function MatchPredictions() {
                         <Table.Caption>승부예측 제출 목록 · {filteredRows.length}건</Table.Caption>
                         <Table.Header>
                             <Table.Row bg="bg.muted">
-                                {["예측 ID", "사용자 ID", "이름", "학번", "경기 ID", "전반 점수", "최종 점수", "전화번호", "제출 시간 (KST)", "적중 수", "오차 합", "승무패"].map((label) => (
+                                {["예측 ID", "사용자 ID", "이름", "학번", "경기 ID", "전반 점수", "최종 점수", "전화번호", "제출 시간 (KST)", "최종 적중", "전반 적중", "승무패", "골득실 오차", "오차 합"].map((label) => (
                                     <Table.ColumnHeader key={label} whiteSpace="nowrap">
                                         {label}
                                     </Table.ColumnHeader>
@@ -231,9 +231,11 @@ export default function MatchPredictions() {
                                     <Table.Cell whiteSpace="nowrap">{prediction.secondScoreA} : {prediction.secondScoreB}</Table.Cell>
                                     <Table.Cell whiteSpace="nowrap">{prediction.phoneNumber || "—"}</Table.Cell>
                                     <Table.Cell whiteSpace="nowrap">{formatSubmitTime(prediction.timeSubmit)}</Table.Cell>
-                                    <Table.Cell>{prediction.correctScoreCount ?? "미채점"}</Table.Cell>
-                                    <Table.Cell>{prediction.scoreDiffAbs ?? "—"}</Table.Cell>
+                                    <Table.Cell>{prediction.correctScoreCount == null ? "미채점" : prediction.finalScoreCorrect == null ? "—" : prediction.finalScoreCorrect ? "O" : "X"}</Table.Cell>
+                                    <Table.Cell>{prediction.firstHalfScoreCorrect == null ? "—" : prediction.firstHalfScoreCorrect ? "O" : "X"}</Table.Cell>
                                     <Table.Cell>{prediction.isOutcomeCorrect == null ? "—" : prediction.isOutcomeCorrect ? "O" : "X"}</Table.Cell>
+                                    <Table.Cell>{prediction.goalDiffError ?? "—"}</Table.Cell>
+                                    <Table.Cell>{prediction.scoreDiffAbs ?? "—"}</Table.Cell>
                                 </Table.Row>
                             ))}
                         </Table.Body>

@@ -69,7 +69,10 @@ type MatchPredictionResponse = Omit<IMatchPrediction, "timeSubmit"> & {
     phoneNumber?: string | null;
     userName: string | null;
     studentNumber: number | null;
+    finalScoreCorrect: boolean | null;
+    firstHalfScoreCorrect: boolean | null;
     isOutcomeCorrect: boolean | null;
+    goalDiffError: number | null;
 };
 
 export function useAllMatchPredictions(enabled: boolean) {

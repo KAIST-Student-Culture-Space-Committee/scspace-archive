@@ -21,7 +21,10 @@ interface PredictionRow {
     timeSubmit: string | Date | null;
     correctScoreCount: number | null;
     scoreDiffAbs: number | null;
+    finalScoreCorrect: boolean | null;
+    firstHalfScoreCorrect: boolean | null;
     isOutcomeCorrect: boolean | null;
+    goalDiffError: number | null;
 }
 
 function submittedAt(value: PredictionRow["timeSubmit"]) {
@@ -58,8 +61,12 @@ export function filterPredictions<T extends PredictionRow>(rows: readonly T[], f
             const bGraded = b.correctScoreCount != null && b.scoreDiffAbs != null;
             if (aGraded !== bGraded) return aGraded ? -1 : 1;
             if (!aGraded) return 0;
-            return b.correctScoreCount! - a.correctScoreCount! || a.scoreDiffAbs! - b.scoreDiffAbs! ||
-                Number(b.isOutcomeCorrect) - Number(a.isOutcomeCorrect) || a.id - b.id;
+            // Keep in sync with server compareRanking (match.leaderboard.ts).
+            return Number(b.finalScoreCorrect) - Number(a.finalScoreCorrect) ||
+                Number(b.firstHalfScoreCorrect) - Number(a.firstHalfScoreCorrect) ||
+                Number(b.isOutcomeCorrect) - Number(a.isOutcomeCorrect) ||
+                (a.goalDiffError ?? Infinity) - (b.goalDiffError ?? Infinity) ||
+                a.scoreDiffAbs! - b.scoreDiffAbs! || a.id - b.id;
         });
     }
     return filtered;

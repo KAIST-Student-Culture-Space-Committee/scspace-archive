@@ -48,7 +48,10 @@ export interface IMatchLeaderboardPrediction extends IMatchPredictionUpdate {
     timeSubmit: string | Date | null;
     correctScoreCount: number | null;
     scoreDiffAbs: number | null;
+    finalScoreCorrect: boolean | null;
+    firstHalfScoreCorrect: boolean | null;
     isOutcomeCorrect: boolean | null;
+    goalDiffError: number | null;
 }
 export interface IMatchRankGroup {
     positions: number[];

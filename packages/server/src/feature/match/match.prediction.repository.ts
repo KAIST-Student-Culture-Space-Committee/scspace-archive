@@ -8,7 +8,7 @@ import { IMatchActualScores, IMatchInfo, IMatchInfoCreate, IMatchInfoUpdate } fr
 import { assertSubmissionOpen, isSubmissionOpen } from './match.submission';
 import { getNow } from '../../common/utils';
 import { rankPredictionGroups } from './match.leaderboard';
-import { comparedScoreCount, gradePrediction, isOutcomeCorrect, latestPredictions, scoreFields } from './match.grading';
+import { comparedScoreCount, gradePrediction, latestPredictions, rankingFields, scoreFields } from './match.grading';
 
 type MatchTransaction = Parameters<Parameters<MySql2Database<typeof schema>['transaction']>[0]>[0];
 
@@ -183,8 +183,7 @@ export class MatchPredictionRepository {
       ...prediction,
       userName: nameKr?.trim() || nameEn?.trim() || null,
       studentNumber,
-      isOutcomeCorrect: actual && prediction.correctScoreCount != null && prediction.scoreDiffAbs != null
-        ? isOutcomeCorrect(prediction, actual) : null,
+      ...rankingFields(prediction, actual),
     }));
   }
 
@@ -221,8 +220,7 @@ export class MatchPredictionRepository {
       predictionResult: row.predictionResult,
       correctScoreCount: row.correctScoreCount, scoreDiffAbs: row.scoreDiffAbs,
       userName: row.nameKr?.trim() || row.nameEn?.trim() || null,
-      isOutcomeCorrect: row.actual && row.correctScoreCount != null && row.scoreDiffAbs != null
-        ? isOutcomeCorrect(row, row.actual) : null,
+      ...rankingFields(row, row.actual),
     }));
   }
 
@@ -242,7 +240,7 @@ export class MatchPredictionRepository {
       secondScoreA: row.secondScoreA, secondScoreB: row.secondScoreB,
       timeSubmit: row.timeSubmit, correctScoreCount: row.correctScoreCount,
       scoreDiffAbs: row.scoreDiffAbs,
-      isOutcomeCorrect: row.correctScoreCount != null && row.scoreDiffAbs != null ? isOutcomeCorrect(row, row.actual) : null,
+      ...rankingFields(row, row.actual),
     }));
     return { participantCount: predictions.length, groups: rankPredictionGroups(predictions) };
   }

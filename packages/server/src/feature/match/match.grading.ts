@@ -20,14 +20,44 @@ export function gradePrediction(prediction: IMatchPredictionUpdate, actual: IMat
   };
 }
 
-export function isOutcomeCorrect(prediction: IMatchPredictionUpdate, actual: IMatchActualScores): boolean | null {
-  // Prefer final cumulative scores. If unavailable, use a complete first-half pair.
-  const pair = actual.secondScoreA != null && actual.secondScoreB != null
+// Prefer final cumulative scores. If unavailable, use a complete first-half pair.
+function outcomePair(actual: IMatchActualScores) {
+  return actual.secondScoreA != null && actual.secondScoreB != null
     ? ['secondScoreA', 'secondScoreB'] as const
     : actual.firstScoreA != null && actual.firstScoreB != null
       ? ['firstScoreA', 'firstScoreB'] as const : null;
+}
+
+export function isOutcomeCorrect(prediction: IMatchPredictionUpdate, actual: IMatchActualScores): boolean | null {
+  const pair = outcomePair(actual);
   if (!pair) return null;
   return Math.sign(prediction[pair[0]] - prediction[pair[1]]) === Math.sign(actual[pair[0]]! - actual[pair[1]]!);
+}
+
+export function goalDiffError(prediction: IMatchPredictionUpdate, actual: IMatchActualScores): number | null {
+  const pair = outcomePair(actual);
+  if (!pair) return null;
+  return Math.abs((prediction[pair[0]] - prediction[pair[1]]) - (actual[pair[0]]! - actual[pair[1]]!));
+}
+
+function isExactPair(prediction: IMatchPredictionUpdate, actual: IMatchActualScores, a: typeof scoreFields[number], b: typeof scoreFields[number]) {
+  if (actual[a] == null || actual[b] == null) return null;
+  return prediction[a] === actual[a] && prediction[b] === actual[b];
+}
+
+export const emptyRankingFields = {
+  finalScoreCorrect: null, firstHalfScoreCorrect: null, isOutcomeCorrect: null, goalDiffError: null,
+};
+
+// Derived from current actual scores at read time, so changing the ranking needs no stored regrade.
+export function rankingFields(prediction: IMatchPredictionUpdate & { correctScoreCount: number | null; scoreDiffAbs: number | null }, actual: IMatchActualScores | null) {
+  if (!actual || prediction.correctScoreCount == null || prediction.scoreDiffAbs == null) return emptyRankingFields;
+  return {
+    finalScoreCorrect: isExactPair(prediction, actual, 'secondScoreA', 'secondScoreB'),
+    firstHalfScoreCorrect: isExactPair(prediction, actual, 'firstScoreA', 'firstScoreB'),
+    isOutcomeCorrect: isOutcomeCorrect(prediction, actual),
+    goalDiffError: goalDiffError(prediction, actual),
+  };
 }
 
 export function latestPredictions<T extends { id: number; userId: number; matchId: number; timeSubmit: Date | string | null }>(rows: T[]): T[] {
