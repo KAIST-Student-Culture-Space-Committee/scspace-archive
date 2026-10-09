@@ -9,6 +9,7 @@ import { LotterySeminarService } from "./lottery.seminar.service";
 import { LotterySeminarInfoRepository } from "./lottery.seminar.info.repository";
 import { ReservationModule } from "@scspace-server/feature/reservation/reservation.module";
 import { MailModule } from "src/tools/mailer/mail.module";
+import { PenaltyModule } from "@scspace-server/feature/penalty/penalty.module";
 
 @Module({
     imports: [
@@ -17,6 +18,7 @@ import { MailModule } from "src/tools/mailer/mail.module";
         UserModule,
         OrganizationModule,
         MailModule,
+        PenaltyModule,
         forwardRef(() => ReservationModule)
     ],
     controllers: [LotterySeminarController],

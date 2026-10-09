@@ -140,6 +140,12 @@ export function useRedirects() {
                         helperText: "My Reservation",
                         invisible: !isLogined,
                     },
+                    {
+                        href: "/mypage/penalty",
+                        label: "내 페널티",
+                        helperText: "My Penalty",
+                        invisible: !isLogined,
+                    },
                 ]
             },
             {
@@ -180,6 +186,11 @@ export function useRedirects() {
                         href: "/manage/rental",
                         label: "대여",
                         helperText: "Rental"
+                    },
+                    {
+                        href: "/manage/penalty",
+                        label: "부과",
+                        helperText: "Penalty"
                     }
                 ]
             },

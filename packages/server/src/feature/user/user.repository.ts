@@ -2,7 +2,7 @@ import { Injectable, Inject, Logger, NotFoundException, ConflictException} from 
 import { DBAsyncProvider } from 'src/db/db.provider';
 import { MySql2Database } from 'drizzle-orm/mysql2';
 import { schema, User } from 'src/db/schema';
-import { and, asc, desc, eq, gt, inArray, InferInsertModel, like, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, inArray, InferInsertModel, like, or, sql } from 'drizzle-orm';
 import { IUserCreate, IUserUpdate } from '@scspace-depot/types/user';
 import { MUser } from './user.model';
 import { UserAuthBinaryEnum } from '@scspace-depot/enums/user.enum';
@@ -78,6 +78,31 @@ export class UserRepository {
         desc(User.type),
         asc(User.studentNumber)
       );
+    return users;
+  }
+
+  async search(keyword: string, limit: number = 20): Promise<MUser[]> {
+    const q = keyword.trim();
+    if (!q) {
+      return [];
+    }
+
+    const safeLimit = Math.min(Math.max(limit, 1), 50);
+
+    const users = await this.db
+      .select()
+      .from(User)
+      .where(or(
+        like(User.nameKr, `%${q}%`),
+        like(User.nameEn, `%${q}%`),
+        sql`cast(${User.studentNumber} as char) like ${`${q}%`}`,
+      ))
+      .orderBy(
+        desc(User.type),
+        asc(User.studentNumber),
+      )
+      .limit(safeLimit);
+
     return users;
   }
 

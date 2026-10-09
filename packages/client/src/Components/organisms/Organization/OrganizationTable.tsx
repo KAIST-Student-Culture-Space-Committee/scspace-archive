@@ -22,14 +22,17 @@ import OrganizationName from "./OrganizationName";
 import NewOrganizationBtn from "./NewOrganizationBtn";
 import { OrganizationStatusEnum } from "@scspace-depot/enums/organization.enum";
 import RefetchBtn from "@scspace-client/Components/molecules/buttons/RefetchBtn";
+import PenaltyBadges from "@scspace-client/Components/organisms/Penalty/PenaltyBadges";
+import { IPenaltyTargetSummary } from "@scspace-depot/types/penalty";
 
-export default function OrganizationTable({ uid, disabled, organization, refetch, helperText, showTabs }: {
+export default function OrganizationTable({ uid, disabled, organization, refetch, helperText, showTabs, penaltyTargets }: {
     helperText?: string;
     disabled?: boolean;
     uid?: number;
     organization: IOrganizationDelegator[];
     refetch: () => void;
     showTabs?: boolean;
+    penaltyTargets?: IPenaltyTargetSummary[];
 }) {
     const [selected, setSelected] = useState<number>(-1);
 
@@ -128,9 +131,18 @@ export default function OrganizationTable({ uid, disabled, organization, refetch
                                 id: org.id,
                                 row: [
                                     (
-                                        <OrganizationName key={org.id} status={org.status}>
-                                            {org.name}
-                                        </OrganizationName>
+                                        <HStack key={org.id}>
+                                            <OrganizationName status={org.status}>
+                                                {org.name}
+                                            </OrganizationName>
+                                            {penaltyTargets && (
+                                                <PenaltyBadges
+                                                    spaces={
+                                                        penaltyTargets.find((t) => t.target.targetId === org.id)?.spaces ?? []
+                                                    }
+                                                />
+                                            )}
+                                        </HStack>
                                     ),
                                     org.delegator.nameKr,
                                     org.delegator.email,

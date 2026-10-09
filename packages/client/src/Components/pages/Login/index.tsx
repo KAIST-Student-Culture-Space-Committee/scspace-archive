@@ -28,12 +28,12 @@ export default function SSOLogin() {
                     <Card.Body>
                         <HStack separator={<StackSeparator />} width="100%" height="100%" gap={6}>
                             {isWide && (
-                                <Box width="100%" height="100%" position="relative">
+                                <Box width="70%" height="50%" position="relative">
                                     <Image
                                         fill
-                                        style={{ objectFit: "cover" }}
-                                        src="/img/testimonials-bg.jpg"
-                                        alt="Business"
+                                        style={{ objectFit: "contain" }}
+                                        src="/img/logo.svg"
+                                        alt="SCSpace LOGO"
                                     />
                                 </Box>
                             )}

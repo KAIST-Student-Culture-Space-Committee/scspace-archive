@@ -62,6 +62,10 @@ export class UserPublicService {
     }
     return users.map(MUser.fromDB);
   }
+  async search(keyword: string, limit: number = 20): Promise<IUser[]> {
+    return (await this.userRepository.search(keyword, limit)).map(MUser.fromDB);
+  }
+
 
   async fetchAll(studentNumber: number): Promise<IUser[]> {
     return (await this.userRepository.fetchAll(studentNumber)).map(MUser.fromDB);

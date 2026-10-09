@@ -12,7 +12,7 @@ import { checkContainAllId, takeAll } from '@scspace-server/common/utils';
 import { ReservationStateEnum } from '@scspace-depot/enums/reservation.enum';
 import { IUser } from '@scspace-depot/types/user';
 import { ISpace } from '@scspace-depot/types/space';
-import { MReservation } from '@scspace-server/feature/reservation/reservation.model';
+import { MReservation, MReservationSimple } from '@scspace-server/feature/reservation/reservation.model';
 import { IDataResponse, ISuccessResponse } from '@scspace-depot/types/common';
 import { MailService } from '@scspace-server/tools/mailer/mail.service';
 import { ReservationMeta, WorkerMeta } from '@scspace-depot/enums/mail.enum';
@@ -23,6 +23,7 @@ import { SpacePublicService } from '@scspace-server/feature/space/space.public.s
 import { UserPublicService } from '@scspace-server/feature/user/user.public.service';
 import { OrganizationPublicService } from '@scspace-server/feature/organization/organization.public.service';
 import { UserUtils } from '@scspace-depot/utils/user.utils';
+import { PenaltyPublicService } from '@scspace-server/feature/penalty/penalty.public.service';
 
 @Injectable()
 export class ReservationService {
@@ -33,6 +34,7 @@ export class ReservationService {
     private readonly userPublicService: UserPublicService,
     private readonly organizationPublicService: OrganizationPublicService,
     private readonly mailService: MailService,
+    private readonly penaltyPublicService: PenaltyPublicService,
   ) { }
 
   async getReservationListByUserId(
@@ -220,6 +222,7 @@ export class ReservationService {
 
   async postReservation(
     reservationInput: IReservationCreate,
+    actor: IUser,
   ): Promise<IReservation> {
 
     await this.reservationPublicService.checkWholeTime(
@@ -240,6 +243,14 @@ export class ReservationService {
     if (!user) throw new BadRequestException('User not found');
     if (!organization) throw new BadRequestException('Organization not found');
     if (!space) throw new BadRequestException('Space not found');
+
+    if (!UserUtils.isManager(actor.type)) {
+      await this.penaltyPublicService.assertReservable(
+        reservationInput.userId,
+        reservationInput.organizationId,
+        space.spaceType,
+      );
+    }
 
     if (!UserUtils.isManager(user.type)) {
       const userOrganizations = await this.organizationPublicService.fetchByUserId(reservationInput.userId);
@@ -442,6 +453,7 @@ export class ReservationService {
 
   async updateReservation(
     reservationInput: Omit<IReservationUpdate, "workerId">,
+    actor: IUser,
   ): Promise<MReservation> {
     const { data: reservation } = await this.reservationRepository.fetch({
       id: reservationInput.id,
@@ -471,6 +483,16 @@ export class ReservationService {
     if (!organization) throw new BadRequestException('Organization not found');
     if (!space) throw new BadRequestException('Space not found');
 
+    const isTimeChanged =
+      (reservationInput.timeFrom ?? reservation[0].timeFrom) !== reservation[0].timeFrom ||
+      (reservationInput.timeTo ?? reservation[0].timeTo) !== reservation[0].timeTo;
+    if (isTimeChanged && !UserUtils.isManager(actor.type)) {
+      await this.penaltyPublicService.assertReservable(
+        reservation[0].userId,
+        reservation[0].organizationId,
+        space.spaceType,
+      );
+    }
 
     await this.reservationPublicService.validateSpaceTimeConstraints(
       reservation[0].userId,
@@ -643,6 +665,35 @@ export class ReservationService {
     const { data: reservations } = await this.reservationRepository.fetch({
       states: [ReservationStateEnum.RECEIVED, ReservationStateEnum.WAIT],
     });
+
+    return await this.toReservationAll(reservations);
+  }
+
+  async getDutyReservation(
+    timeFrom: number,
+    timeTo: number,
+  ): Promise<IReservationAll[]> {
+    if (timeFrom >= timeTo)
+      throw new BadRequestException('timeFrom must be before timeTo');
+
+    const { data: reservations } = await this.reservationRepository.fetch({
+      states: [
+        ReservationStateEnum.GRANT,
+        ReservationStateEnum.WAIT,
+        ReservationStateEnum.RECEIVED,
+      ],
+      timeRange: { timeFrom, timeTo },
+    });
+
+    return (await this.toReservationAll(reservations)).sort(
+      (a, b) => a.timeFrom - b.timeFrom,
+    );
+  }
+
+  private async toReservationAll(
+    reservations: MReservationSimple[],
+  ): Promise<IReservationAll[]> {
+    if (reservations.length === 0) return [];
 
     const userIds = reservations.map((reservation) => reservation.userId);
     const organizationIds = reservations.map(

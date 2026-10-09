@@ -1,3 +1,8 @@
+// Legacy time of the current wall clock (browser local time, same as the rest of this app)
+export function getBusinessNow(): number {
+    return dateUtils().getTime(new Date());
+}
+
 export function dateUtils() {
     function getTime(date: Date | { year?: number | 0, month?: number, day?: number, hour?: number, minute?: number }): number {
         if (date instanceof Date) {
@@ -52,6 +57,13 @@ export function dateUtils() {
         return new Date(year, month, date, hour, minute, 0, 0);
     }
 
+    // Calendar-day arithmetic on the legacy value; UTC avoids timezone and DST shifts
+    function addDays(time: number, days: number) {
+        const { year, month, date, hour, minute } = getDateUnit(time);
+        const next = new Date(Date.UTC(year, month, date + days));
+        return (((next.getUTCFullYear() * 12 + next.getUTCMonth()) * 32 + next.getUTCDate()) * 24 + hour) * 60 + minute;
+    }
+
     const minute = 1;
     const hour = minute * 60;
     const date = hour * 24;
@@ -68,7 +80,9 @@ export function dateUtils() {
 
     return {
         getTime,
+        getNow: getBusinessNow,
         getMidnightTime,
+        addDays,
         getDateUnit,
         getDateString,
         getDate,

@@ -118,14 +118,24 @@ export class ReservationController {
   //   return await this.reservationService.getManageReservation();
   // }
 
+  @UseGuards(ManagerGuard)
+  @Get('duty')
+  async getDutyReservation(
+    @Query('timeFrom', ParseIntPipe) timeFrom: number,
+    @Query('timeTo', ParseIntPipe) timeTo: number,
+  ): Promise<IReservationAll[]> {
+    return await this.reservationService.getDutyReservation(timeFrom, timeTo);
+  }
+
   // AuthGuard - jwt
   //HOOK: useReservationAPI
   @UseGuards(MemberGuard)
   @Post()
   async postReservation(
     @Body() reservationInput: IReservationCreate,
+    @Req() req: Request,
   ): Promise<IReservation> {
-    return await this.reservationService.postReservation(reservationInput);
+    return await this.reservationService.postReservation(reservationInput, req.user as IUser);
   }
 
   @UseGuards(ManagerGuard)
@@ -141,8 +151,9 @@ export class ReservationController {
   @Put()
   async updateReservation(
     @Body() reservationInput: IReservationUpdate,
+    @Req() req: Request,
   ): Promise<IReservation> {
-    return await this.reservationService.updateReservation(reservationInput);
+    return await this.reservationService.updateReservation(reservationInput, req.user as IUser);
   }
 
   @UseGuards(WorkerGuard)

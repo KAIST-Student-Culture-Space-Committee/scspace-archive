@@ -11,6 +11,7 @@ export * from './types/space';
 export * from './types/user';
 export * from './types/passpin';
 export * from './types/match';
+export * from './types/penalty';
 
 // Export enums
 export * from './enums/article.enum';
@@ -23,6 +24,7 @@ export * from './enums/space.enum';
 export * from './enums/user.enum';
 export * from './enums/passpin.enum';
 export * from './enums/rental.enum'
+export * from './enums/penalty.enum';
 
 
 // Export constants
@@ -30,4 +32,6 @@ export * from "./consts/article.const";
 export * from "./consts/file.const";
 export * from "./consts/rental.const";
 export * from './consts/reservation.const';
+export * from "./consts/duty.const";
 export * from "./consts/space.const";
+export * from "./consts/penalty.const";
