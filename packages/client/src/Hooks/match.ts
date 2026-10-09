@@ -2,7 +2,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useQueryApi } from "./api";
-import { IMatchInfo, IMatchInfoCreate, IMatchInfoUpdate, IMatchPrediction, IMatchPredictionCreate, IMatchPredictionWithInfo } from "@scspace-depot/types/match";
+import { IMatchLeaderboard, IMatchInfo, IMatchInfoCreate, IMatchInfoUpdate, IMatchPrediction, IMatchPredictionCreate, IMatchPredictionWithInfo } from "@scspace-depot/types/match";
 import { ISuccessResponse } from "@scspace-depot/types/common";
 
 const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
@@ -69,12 +69,15 @@ type MatchPredictionResponse = Omit<IMatchPrediction, "timeSubmit"> & {
     phoneNumber?: string | null;
     userName: string | null;
     studentNumber: number | null;
+    finalScoreCorrect: boolean | null;
+    firstHalfScoreCorrect: boolean | null;
     isOutcomeCorrect: boolean | null;
+    goalDiffError: number | null;
 };
 
 export function useAllMatchPredictions(enabled: boolean) {
     return useQueryApi<{ status: string; data: MatchPredictionResponse[] }>(
-        "/match/predictions",
+        "/match/predictions/admin",
         undefined,
         { enabled },
     );
@@ -122,7 +125,7 @@ export function useUpdateMatchInfo() {
 export function useCreateTestPrediction() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (data: IMatchPredictionCreate & { userId: number }) =>
+        mutationFn: (data: Omit<IMatchPredictionCreate, 'phoneNumber' | 'privacyConsent'> & { userId: number }) =>
             requestMatchJson<ISuccessResponse, typeof data>("/match/predictions/test", "POST", data),
         onSuccess: () => queryClient.invalidateQueries({
             predicate: ({ queryKey }) => typeof queryKey[0] === "string" && queryKey[0].startsWith("/match/prediction"),
@@ -138,4 +141,11 @@ export function useApplyMatchGrading() {
             predicate: ({ queryKey }) => typeof queryKey[0] === "string" && queryKey[0].startsWith("/match/"),
         }),
     });
+}
+
+export function useMatchLeaderboard(matchId?: number) {
+    return useQueryApi<{ status: string; data: IMatchLeaderboard }>(
+        `/match/${matchId ?? 0}/leaderboard`, undefined,
+        { enabled: matchId != null && matchId > 0 },
+    );
 }

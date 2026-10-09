@@ -1,4 +1,4 @@
-export interface IMatchPredictionCreate {
+export interface IMatchPredictionScores {
   matchId: number;
   firstScoreA: number;
   firstScoreB: number;
@@ -6,7 +6,13 @@ export interface IMatchPredictionCreate {
   secondScoreB: number;
 }
 
-export interface IMatchPredictionInsert extends IMatchPredictionCreate {
+export interface IMatchPredictionCreate extends IMatchPredictionScores {
+  phoneNumber: string;
+  privacyConsent: true;
+}
+
+export interface IMatchPredictionInsert extends IMatchPredictionScores {
+  phoneNumber: string;
   userId: number;
 }
 

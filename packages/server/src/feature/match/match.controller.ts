@@ -18,6 +18,7 @@ import { IUser } from '@scspace-depot/types/user';
 import { Request } from 'express';
 import { MatchPredictionRepository } from './match.prediction.repository';
 import { IMatchPredictionCreate, IMatchPredictionUpdate } from './match.model';
+import { parseContact, parseStartTime } from './match.submission';
 import { IMatchInfoUpdate } from '@scspace-depot/types/match';
 
 type AuthenticatedRequest = Request & { user: IUser };
@@ -37,11 +38,12 @@ export class MatchController {
         }
         const input = body as Record<string, unknown>;
         const textLimits = { matchName: 255, teamA: 100, teamB: 100 } as const;
-        const allowed = new Set([...Object.keys(textLimits), ...SCORE_FIELDS]);
+        const allowed = new Set([...Object.keys(textLimits), ...SCORE_FIELDS, 'startTime']);
         if (Object.keys(input).length === 0 || Object.keys(input).some((key) => !allowed.has(key))) {
             throw new BadRequestException('수정 가능한 경기 정보만 입력해주세요.');
         }
         const update: IMatchInfoUpdate = {};
+        if ('startTime' in input) update.startTime = parseStartTime(input.startTime);
         for (const field of Object.keys(textLimits) as (keyof typeof textLimits)[]) {
             if (!(field in input)) continue;
             const value = input[field];
@@ -92,14 +94,15 @@ export class MatchController {
         return {
             matchId: body.matchId,
             ...this.parseScores(body),
+            ...parseContact(body),
         };
     }
 
     @Post('predictions/test')
     @UseGuards(AdminGuard)
-    async createTestPrediction(@Body() body: IMatchPredictionCreate & { userId: number }) {
-        const prediction = this.parseCreateBody(body);
-        if (!Number.isInteger(body.userId) || body.userId <= 0 || body.userId > 2147483647 || body.matchId > 2147483647) {
+    async createTestPrediction(@Body() body: Omit<IMatchPredictionCreate, 'phoneNumber' | 'privacyConsent'> & { userId: number }) {
+        const prediction = { matchId: body.matchId, ...this.parseScores(body) };
+        if (!Number.isInteger(body.userId) || body.userId <= 0 || body.userId > 2147483647 || !Number.isInteger(body.matchId) || body.matchId <= 0 || body.matchId > 2147483647) {
             throw new BadRequestException('사용자 ID와 경기 ID는 유효한 양의 정수여야 합니다.');
         }
         await this.matchRepo.insertTestPrediction({ ...prediction, userId: body.userId });
@@ -171,12 +174,12 @@ export class MatchController {
     @UseGuards(AdminGuard)
     async createMatchInfo(@Body() body: unknown) {
         const data = this.parseMatchInfoUpdate(body);
-        if (!data.matchName || !data.teamA || !data.teamB ||
-            Object.keys(data).some((key) => !['matchName', 'teamA', 'teamB'].includes(key))) {
+        if (!data.matchName || !data.teamA || !data.teamB || data.startTime == null ||
+            Object.keys(data).some((key) => !['matchName', 'teamA', 'teamB', 'startTime'].includes(key))) {
             throw new BadRequestException('경기명, 팀 A, 팀 B를 입력해주세요.');
         }
         const id = await this.matchRepo.createMatchInfo({
-            matchName: data.matchName, teamA: data.teamA, teamB: data.teamB,
+            matchName: data.matchName, teamA: data.teamA, teamB: data.teamB, startTime: data.startTime,
         });
         return { success: true, id };
     }
@@ -218,16 +221,27 @@ export class MatchController {
         return { status: 'success', data };
     }
 
+    @Get('predictions/admin')
+    @UseGuards(AdminGuard)
+    async getAdminPredictions() {
+        return { status: 'success', data: await this.matchRepo.fetchAllPredictions() };
+    }
+
     @Get('predictions')
     @UseGuards(AdminGuard)
     async getAllPredictions() {
         try {
             const data = await this.matchRepo.fetchAllPredictions();
-            return { status: 'success', data };
+            return { status: 'success', data: data.map(({ phoneNumber, ...prediction }) => prediction) };
         } catch (error) {
             this.logger.error('Error fetching all match predictions:', error);
             throw error;
         }
+    }
+
+    @Get(':matchId/leaderboard')
+    async getLeaderboard(@Param('matchId', ParseIntPipe) matchId: number) {
+        return { status: 'success', data: await this.matchRepo.fetchLeaderboard(matchId) };
     }
 
     @Get(':matchId')

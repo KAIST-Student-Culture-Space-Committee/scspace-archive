@@ -2,6 +2,8 @@
 
 import { Button, Field, Flex, Grid, Input, NativeSelect, Stack, Switch, Table, Text } from "@chakra-ui/react";
 import LoadingComponent from "@scspace-client/Components/atoms/Loading";
+import { getMatchNow } from "@scspace-client/Components/pages/match-prediction/match-time";
+import { dateUtils } from "@scspace-client/Hooks/utils";
 import { useAuth } from "@scspace-client/Hooks/auth";
 import { useAllMatchPredictions, useApplyMatchGrading, useMatchSubmissionAdmin } from "@scspace-client/Hooks/match";
 import { useRouter } from "next/navigation";
@@ -35,6 +37,8 @@ export default function MatchPredictions() {
     const predictions = useAllMatchPredictions(!authLoading && isAdmin);
     const { matches, updateSubmission } = useMatchSubmissionAdmin(!authLoading && isAdmin);
     const applyGrading = useApplyMatchGrading();
+    const [now, setNow] = useState(getMatchNow);
+    useEffect(() => { const timer = window.setInterval(() => setNow(getMatchNow()), 1000); return () => window.clearInterval(timer); }, []);
     const [filters, setFilters] = useState<PredictionFilters>(emptyPredictionFilters);
     const filteredRows = useMemo(
         () => filterPredictions(predictions.data?.data ?? [], filters),
@@ -77,26 +81,25 @@ export default function MatchPredictions() {
                     <Text color="fg.muted">No match found.</Text>
                 ) : matches.data?.data.map((match) => (
                     <Flex key={match.id} justify="space-between" align="center" gap={3} wrap="wrap">
-                        <Text fontSize="sm">#{match.id} {match.matchName} ({match.teamA} : {match.teamB})</Text>
+                        <Text fontSize="sm">#{match.id} {match.matchName} ({match.teamA} : {match.teamB})<br />시작·마감: {match.startTime == null ? "미설정" : `${dateUtils().getString(match.startTime)} KST`}<br />전반: {match.firstScoreA ?? "—"} : {match.firstScoreB ?? "—"} · 최종: {match.secondScoreA ?? "—"} : {match.secondScoreB ?? "—"}</Text>
                         <Flex gap={3} align="center" wrap="wrap">
                             <MatchInfoEditor match={match} disabled={updateSubmission.isPending || applyGrading.isPending || matches.isFetching} />
                             <Button size="sm" colorPalette="cyan"
-                                disabled={match.allowSubmission || updateSubmission.isPending || applyGrading.isPending || matches.isFetching}
+                                disabled={(match.allowSubmission && match.startTime != null && now < match.startTime) || [match.firstScoreA, match.firstScoreB, match.secondScoreA, match.secondScoreB].every((score) => score == null) || updateSubmission.isPending || applyGrading.isPending || matches.isFetching}
                                 loading={applyGrading.isPending && applyGrading.variables === match.id}
                                 onClick={() => applyGrading.mutate(match.id)}>
                                 채점 적용
                             </Button>
                             <Switch.Root
                                 colorPalette="green"
-                                checked={match.allowSubmission === true}
-                                disabled={updateSubmission.isPending || applyGrading.isPending || matches.isFetching}
+                                checked={match.allowSubmission === true && match.startTime != null && now < match.startTime}
+                                disabled={match.startTime == null || now >= match.startTime || updateSubmission.isPending || applyGrading.isPending || matches.isFetching}
                                 onCheckedChange={({ checked }) => updateSubmission.mutate({
                                     matchId: match.id, allowSubmission: checked,
                                 })}
                             >
                                 <Switch.HiddenInput aria-label={`${match.matchName} Open Submission`} />
                                 <Switch.Control />
-                                <Switch.Label>{match.allowSubmission ? "Y" : "N"}</Switch.Label>
                             </Switch.Root>
                         </Flex>
                     </Flex>
@@ -180,7 +183,7 @@ export default function MatchPredictions() {
             <Flex justify="space-between" align="center" gap={3} wrap="wrap">
                 <Text color="fg.muted" fontSize="sm" aria-live="polite">
                     {predictions.isSuccess ? `표시 ${filteredRows.length}건 / 전체 ${rows.length}건 · ` : ""}
-                    {filters.history === "latest" ? "사용자·경기별 최신 제출" : "수정 이력 포함"} · {filters.sort === "score" ? "적중 수 ↓ · 오차 합 ↑ · 승무패 적중 우선" : "최신 제출순"} · 점수 A : B
+                    {filters.history === "latest" ? "사용자·경기별 최신 제출" : "수정 이력 포함"} · {filters.sort === "score" ? "최종 적중 · 전반 적중 · 승무패 · 골득실 오차 ↑ · 오차 합 ↑" : "최신 제출순"} · 점수 A : B
                 </Text>
                 <Button
                     size="sm"
@@ -209,7 +212,7 @@ export default function MatchPredictions() {
                         <Table.Caption>승부예측 제출 목록 · {filteredRows.length}건</Table.Caption>
                         <Table.Header>
                             <Table.Row bg="bg.muted">
-                                {["예측 ID", "사용자 ID", "이름", "학번", "경기 ID", "전반 점수", "최종 점수", "전화번호", "제출 시간 (KST)", "적중 수", "오차 합", "승무패"].map((label) => (
+                                {["예측 ID", "사용자 ID", "이름", "학번", "경기 ID", "전반 점수", "최종 점수", "전화번호", "제출 시간 (KST)", "최종 적중", "전반 적중", "승무패", "골득실 오차", "오차 합"].map((label) => (
                                     <Table.ColumnHeader key={label} whiteSpace="nowrap">
                                         {label}
                                     </Table.ColumnHeader>
@@ -228,9 +231,11 @@ export default function MatchPredictions() {
                                     <Table.Cell whiteSpace="nowrap">{prediction.secondScoreA} : {prediction.secondScoreB}</Table.Cell>
                                     <Table.Cell whiteSpace="nowrap">{prediction.phoneNumber || "—"}</Table.Cell>
                                     <Table.Cell whiteSpace="nowrap">{formatSubmitTime(prediction.timeSubmit)}</Table.Cell>
-                                    <Table.Cell>{prediction.correctScoreCount ?? "미채점"}</Table.Cell>
-                                    <Table.Cell>{prediction.scoreDiffAbs ?? "—"}</Table.Cell>
+                                    <Table.Cell>{prediction.correctScoreCount == null ? "미채점" : prediction.finalScoreCorrect == null ? "—" : prediction.finalScoreCorrect ? "O" : "X"}</Table.Cell>
+                                    <Table.Cell>{prediction.firstHalfScoreCorrect == null ? "—" : prediction.firstHalfScoreCorrect ? "O" : "X"}</Table.Cell>
                                     <Table.Cell>{prediction.isOutcomeCorrect == null ? "—" : prediction.isOutcomeCorrect ? "O" : "X"}</Table.Cell>
+                                    <Table.Cell>{prediction.goalDiffError ?? "—"}</Table.Cell>
+                                    <Table.Cell>{prediction.scoreDiffAbs ?? "—"}</Table.Cell>
                                 </Table.Row>
                             ))}
                         </Table.Body>
