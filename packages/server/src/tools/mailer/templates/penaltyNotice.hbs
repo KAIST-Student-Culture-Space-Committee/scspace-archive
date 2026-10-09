@@ -1,0 +1,103 @@
+<html lang='ko'>
+<head>
+    <meta charset='utf-8' />
+    <title>{{meta.header.kr}} / {{meta.header.en}}</title>
+    <style>
+        body{ font-family: 'Malgun Gothic', Arial, sans-serif;
+            background:#f4f4f4;margin:0;padding:0;color:#333; line-height:1.6; }
+        .container{ max-width:600px;margin:0 auto;background:#fff;
+            border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,.08); }
+        .header{ background:{{meta.color}}; color:#fff;text-align:center;padding:30px 20px;
+            border-radius:8px 8px 0 0; }
+        .header h1{margin:0;font-size:24px;}
+        .header h2{margin:8px 0 0 0;font-weight:400;font-size:16px;}
+        .content{padding:30px 20px;}
+        .informations{ margin:20px 0;background:#f8f9fa;padding:20px;border-radius:6px;
+            border-left:4px solid #17a2b8; }
+        .informations ul{ list-style:none;padding:0;margin:10px 0; }
+        .informations li{ margin:10px 0;padding:10px;background:#fff;border-radius:4px;
+            border-left:3px solid #17a2b8;display:flex;align-items:center; }
+        .informations li strong{ color:#17a2b8;min-width:140px; }
+        .converted-note{ margin:20px 0;background:#fff3cd;padding:15px 20px;border-radius:6px;
+            border-left:4px solid #ffc107;color:#856404; }
+        @media only screen and (max-width: 600px) {
+            .container{margin:10px;border-radius:4px;}
+            .header{padding:20px 15px;}
+            .content{padding:20px 15px;}
+            .informations li{flex-direction:column;align-items:flex-start;}
+            .informations li strong{min-width:auto;margin-bottom:5px;}
+        }
+        .footer {
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+            padding: 20px;
+            text-align: center;
+            font-size: 14px;
+            color: #6c757d;
+            border-radius: 0 0 8px 8px;
+        }
+    </style>
+</head>
+<body>
+<div class='container'>
+    <div class='header' style='background:{{meta.color}}'>
+        <h1>{{meta.emoji}} {{meta.header.kr}}</h1>
+        <h2>{{meta.header.en}}</h2>
+        <p style='margin-top:18px'>
+            {{meta.body.kr}}<br />
+            {{meta.body.en}}
+        </p>
+    </div>
+
+    <div class='content'>
+        <div class='informations'>
+            <strong>상세 정보 / Detailed Information</strong>
+            <ul>
+                <li>
+                    <strong>대상:</strong>
+                    <span>{{penalty.targetName}}</span>
+                </li>
+                <li>
+                    <strong>공간:</strong>
+                    <span>{{penalty.spaceName}}</span>
+                </li>
+                <li>
+                    <strong>종류:</strong>
+                    <span>{{penalty.kindName}}</span>
+                </li>
+                <li>
+                    <strong>사유:</strong>
+                    <span>{{penalty.reason}}</span>
+                </li>
+                <li>
+                    <strong>일시:</strong>
+                    <span>{{penalty.time}} KST</span>
+                </li>
+                <li>
+                    <strong>누적 주의/경고:</strong>
+                    <span>주의 {{penalty.noticeTotal}} / 경고 {{penalty.warningTotal}}</span>
+                </li>
+                <li>
+                    <strong>예약 제한:</strong>
+                    <span>{{penalty.restriction}}</span>
+                </li>
+            </ul>
+        </div>
+
+        {{#if penalty.converted}}
+        <div class='converted-note'>
+            주의 2회가 누적되어 경고 1회로 치환되었습니다.<br />
+            2 notices have been converted into 1 warning.
+        </div>
+        {{/if}}
+    </div>
+
+    <div class='footer'>
+        <p><strong>학생문화공간위원회 / Student Cultural Space Committee</strong></p>
+        <p>{{meta.templateFooter}}<br />
+            {{meta.templateFooterEn}}</p>
+        <p style='margin-top:15px;color:#999;'>Contact : ✉️ scspace@kaist.ac.kr</p>
+    </div>
+</div>
+</body>
+</html>

@@ -9,7 +9,7 @@ export default function ContactSection() {
                     KAIST 학부 총학생회 산하 학생문화공간위원회
                 </Text>
                 <Text fontSize={"sm"}>
-                    <Mark>Student Cultural & Space Committee,</Mark> <Mark>under KAIST Undergraduate Student Council</Mark>
+                    <Mark>Student Culture & Space Committee,</Mark> <Mark>under KAIST Undergraduate Student Council</Mark>
                 </Text>
                 <Separator />
                 <Text color="gray.500" fontSize={"sm"}>

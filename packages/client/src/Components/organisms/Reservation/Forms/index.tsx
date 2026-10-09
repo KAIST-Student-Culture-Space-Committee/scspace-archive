@@ -8,6 +8,7 @@ export * from "./InnerPeople";
 export * from "./Organization";
 export * from "./OrganizationAll";
 export * from "./OuterPeople";
+export * from "./Performance";
 export * from "./Space";
 export * from "./Title";
 export * from "./Worker";

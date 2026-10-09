@@ -330,3 +330,35 @@ export const RentalMeta = {
         templateFooterEn : "This mail is sent to all rental authors that have exceeded the return due. ",
     }
 } as const
+
+
+export const PenaltyMeta = {
+    Imposed: {
+        color: '#d9480f',
+        emoji: '⚠️',
+        header: {
+            kr: '페널티 부과 안내',
+            en: 'Penalty Notice'
+        },
+        body: {
+            kr: '귀하(또는 소속 조직)에게 주의/경고가 부과되었음을 안내드립니다. 자세한 내용은 아래를 확인해 주세요.',
+            en: 'This is to inform you that a notice/warning has been issued to you (or your organization). Please check the details below.'
+        },
+        templateFooter: '이 메일은 페널티가 부과된 개인 또는 조직의 이메일로 발송되었습니다.',
+        templateFooterEn: 'This mail is sent to the individual or organization the penalty was imposed on.',
+    },
+    Cancelled: {
+        color: '#28a745',
+        emoji: '✅',
+        header: {
+            kr: '페널티 취소 안내',
+            en: 'Penalty Cancelled'
+        },
+        body: {
+            kr: '페널티 이력이 삭제되어 안내드립니다. 자세한 내용은 아래를 확인해 주세요.',
+            en: 'This is to inform you that a penalty record has been deleted. Please check the details below.'
+        },
+        templateFooter: '이 메일은 페널티 이력이 삭제된 개인 또는 조직의 이메일로 발송되었습니다.',
+        templateFooterEn: 'This mail is sent to the individual or organization whose penalty history was deleted.',
+    }
+} as const

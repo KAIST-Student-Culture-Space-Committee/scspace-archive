@@ -14,7 +14,8 @@ type MailTemplate =
     | 'rentalNotif'
     | 'rentalSuccess'
     | 'rentalReturnReq'
-    | 'workerNeedReason';
+    | 'workerNeedReason'
+    | 'penaltyNotice';
 
 export interface IMail {
     subject: string;

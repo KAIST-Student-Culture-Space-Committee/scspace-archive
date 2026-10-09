@@ -334,6 +334,7 @@ export class ReservationRepository {
       food: reservationInput.content.food,
       busking: reservationInput.content.busking,
       workerNeed: reservationInput.content.workerNeed,
+      performance: reservationInput.content.performance ?? false,
     } as InferInsertModel<typeof ReservationContent>;
 
     await this.db.insert(ReservationContent).values(insertContentData);

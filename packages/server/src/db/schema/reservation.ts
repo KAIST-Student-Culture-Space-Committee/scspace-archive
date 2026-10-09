@@ -42,6 +42,7 @@ export const ReservationContent = mysqlTable('reservation_content', {
   busking: boolean('busking').notNull().default(false),
   workerNeed: boolean('worker_need').notNull().default(false),
   workerId: int('worker_id').notNull().default(0),
+  performance: boolean('performance').notNull().default(false),
 });
 
 export const ReservationRelations = relations(Reservation, ({ one }) => ({

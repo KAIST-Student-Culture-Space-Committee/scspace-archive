@@ -5,6 +5,7 @@ import {
     Grid,
     HStack,
     IconButton,
+    Stack,
     Text,
     useBreakpointValue,
 } from "@chakra-ui/react";
@@ -19,12 +20,16 @@ import UserDialog from "../../../organisms/User/UserDialog";
 import TooltipComponent from "@scspace-client/Components/atoms/Tooptip";
 import SimpleTable from "@scspace-client/Components/atoms/SimpleTable";
 import UserBadges from "@scspace-client/Components/organisms/User/UserBadges";
+import PenaltyBadges from "@scspace-client/Components/organisms/Penalty/PenaltyBadges";
+import { usePenaltyTargets } from "@scspace-client/Hooks/penalty";
+import { PenaltyTargetEnum } from "@scspace-depot/enums/penalty.enum";
 
 export default function ManageUser() {
     const { needManager } = useAuth();
     needManager();
 
     const { users, refetch } = useAllUser();
+    const { data: penaltyTargets } = usePenaltyTargets(PenaltyTargetEnum.USER);
 
     const [selectedId, setSelectedId] = useState<number>(0);
     const [open, setOpen] = useState<boolean>(false);
@@ -90,7 +95,12 @@ export default function ManageUser() {
                                         // (<UserName key={u.id} user={u} />),
                                         u.nameKr,
                                         u.email,
-                                        <UserBadges key={u.id} type={u.type} />,
+                                        <Stack key={u.id} gap={1}>
+                                            <UserBadges type={u.type} />
+                                            <PenaltyBadges
+                                                spaces={penaltyTargets?.find((t) => t.target.targetId === u.id)?.spaces ?? []}
+                                            />
+                                        </Stack>,
                                     ],
                                 }))}
                             />

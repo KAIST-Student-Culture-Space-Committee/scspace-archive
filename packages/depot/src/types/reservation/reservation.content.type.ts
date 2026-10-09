@@ -7,6 +7,9 @@ export interface IReservationContent {
   busking: boolean;
   workerNeed: boolean;
   workerId: number;
+  performance: boolean;
 }
 
-export type IReservationContentCreate = Omit<IReservationContent, "id" | "workerId">;
+export type IReservationContentCreate = Omit<IReservationContent, "id" | "workerId" | "performance"> & {
+  performance?: boolean;
+};

@@ -110,6 +110,34 @@ export function getDateDiffInMinute(timeBefore: number, timeAfter: number) {
   return (dateAfter.getTime() - dateBefore.getTime()) / (1000 * 60);
 }
 
+export function getLegacyTimeFromUnits(
+  year: number,
+  month: number,
+  day: number,
+  hour: number,
+  minute: number,
+): number {
+  return (((year * 12 + month) * 32 + day) * 24 + hour) * 60 + minute;
+}
+
+// Calendar-day arithmetic on the wall-clock value; UTC avoids host timezone and DST shifts
+export function addLegacyTimeDays(time: number, days: number): number {
+  const { year, month, day, hour, minute } = getDateUnit(time);
+  const date = new Date(Date.UTC(year, month, day + days));
+  return getLegacyTimeFromUnits(
+    date.getUTCFullYear(),
+    date.getUTCMonth(),
+    date.getUTCDate(),
+    hour,
+    minute,
+  );
+}
+
+export function getLegacyTimeAtEndOfDay(time: number): number {
+  const { year, month, day } = getDateUnit(time);
+  return getLegacyTimeFromUnits(year, month, day, 23, 59);
+}
+
 export function getOrganizationStatusString(status: OrganizationStatusEnum): {
   kr: string;
   en: string;

@@ -1,4 +1,4 @@
-import { Controller, Get, Param, ParseIntPipe, Post, Body, Delete, Put, UseGuards, NotFoundException, Patch, Query, Logger } from '@nestjs/common';
+import { Controller, Get, Param, ParseIntPipe, Post, Body, Delete, Put, UseGuards, NotFoundException, Patch, Query, Logger, DefaultValuePipe } from '@nestjs/common';
 import { UserService } from './user.service';
 import { IUser, IUserCreate, IUserUpdate } from '@scspace-depot/types/user';
 import { ISuccessResponse } from '@scspace-depot/types/common';
@@ -32,6 +32,18 @@ export class UserController {
       throw new NotFoundException('User not found');
     }
     return user;
+  }
+
+  @UseGuards(ManagerGuard)
+  @Get('search')
+  async searchUsers(
+    @Query('q') q?: string,
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit?: number,
+  ): Promise<IUser[]> {
+    if (!q || !q.trim()) {
+      return [];
+    }
+    return await this.userPublicService.search(q, limit ?? 20);
   }
 
   @UseGuards(AuthGuard('jwt'))

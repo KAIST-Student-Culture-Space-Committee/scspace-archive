@@ -32,6 +32,8 @@ import { IReservationMultipleCreateResurt } from '@scspace-depot/types/reservati
 import { MailService } from '@scspace-server/tools/mailer/mail.service';
 import { UserPublicService } from '@scspace-server/feature/user/user.public.service';
 import { LotteryMeta } from "@scspace-depot/enums/mail.enum";
+import { PenaltyPublicService } from "@scspace-server/feature/penalty/penalty.public.service";
+import { PenaltyTargetEnum } from "@scspace-depot/enums/penalty.enum";
 
 const weekDays = [
     { key: "sunday", label: "Sun", index: 0 },
@@ -56,6 +58,7 @@ export class LotterySeminarService {
         private readonly lotterySeminarInfoRepository: LotterySeminarInfoRepository,
         private readonly mailService: MailService,
         private readonly userPublicService: UserPublicService,
+        private readonly penaltyPublicService: PenaltyPublicService,
     ) { }
 
     async getAllSeminarLotteryInfo(): Promise<MSeminarLotteryInfo[]> {
@@ -267,6 +270,18 @@ export class LotterySeminarService {
         if (pastLotteries.length >= 2) {
             throw new BadRequestException("Maximum number of seminar lotteries is 2. Cannot create more.");
         }
+
+        const space = await this.spacePublicService.fetchById(params.lottery.spaceId);
+        if (!space) {
+            throw new BadRequestException("Space not found");
+        }
+        await this.penaltyPublicService.assertNotRestricted(
+            {
+                targetType: PenaltyTargetEnum.ORGANIZATION,
+                targetId: params.lottery.organizationId,
+            },
+            space.spaceType,
+        );
         // Implementation for inserting a new seminar lottery
         return await this.lotterySeminarRepository.insert(params.lottery);
     }
@@ -518,6 +533,7 @@ export class LotterySeminarService {
                         food: "",
                         busking: false,
                         workerNeed: false,
+                        performance: false,
                     }
                 })
 
