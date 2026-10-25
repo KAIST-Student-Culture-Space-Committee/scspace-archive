@@ -1,8 +1,11 @@
 jest.mock('@scspace-depot/enums/organization.enum', () => ({ OrganizationStatusEnum: {} }), { virtual: true });
 jest.mock('./match.prediction.repository', () => ({ MatchPredictionRepository: jest.fn() }));
 jest.mock('../auth/jwt/jwt.guard', () => ({ AdminGuard: class {} }));
+jest.mock('./match.logo.interceptor', () => ({ MatchLogoInterceptor: class {} }));
+jest.mock('@scspace-server/tools/file/file.service', () => ({ FileService: class {} }), { virtual: true });
 import { MatchController } from './match.controller';
 import { MatchPredictionRepository } from './match.prediction.repository';
+import type { FileService } from '@scspace-server/tools/file/file.service';
 
 const input = { matchId: 1, firstScoreA: 1, firstScoreB: 0, secondScoreA: 2, secondScoreB: 1,
   phoneNumber: '010 1234-5678', privacyConsent: true as const };
@@ -10,7 +13,8 @@ const request = { user: { id: 7 } } as any;
 
 describe('match contact API', () => {
   const repo = { insert: jest.fn(), fetchPredictionById: jest.fn(), fetchAllPredictions: jest.fn(), createMatchInfo: jest.fn(), fetchLeaderboard: jest.fn() };
-  const controller = new MatchController(repo as unknown as MatchPredictionRepository);
+  const fileService = { deletePublicFile: jest.fn() };
+  const controller = new MatchController(repo as unknown as MatchPredictionRepository, fileService as unknown as FileService);
   beforeEach(() => jest.clearAllMocks());
   it('passes normalized contact data to creation', async () => {
     await controller.createPrediction(request, input);
@@ -35,5 +39,11 @@ describe('match contact API', () => {
   it('requires a kickoff when creating a match', async () => {
     await expect(controller.createMatchInfo({ matchName: 'Test', teamA: 'A', teamB: 'B' })).rejects.toThrow();
     expect(repo.createMatchInfo).not.toHaveBeenCalled();
+  });
+  it('requires both team logos and removes uploaded files when creation is rejected', async () => {
+    const files = { teamALogo: [{ filename: 'a.png' }] } as any;
+    await expect(controller.createMatchInfo({ matchName: 'Test', teamA: 'A', teamB: 'B', startTime: '20261026120000' }, files)).rejects.toThrow();
+    expect(repo.createMatchInfo).not.toHaveBeenCalled();
+    expect(fileService.deletePublicFile).toHaveBeenCalledWith('a.png');
   });
 });

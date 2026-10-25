@@ -9,6 +9,8 @@ export const MatchInfo = mysqlTable('match_info', {
   startTime: bigint('start_time', { mode: 'number' }),
   teamA: varchar('team_a', { length: 100 }).notNull(),
   teamB: varchar('team_b', { length: 100 }).notNull(),
+  teamALogo: varchar('team_a_logo', { length: 255 }),
+  teamBLogo: varchar('team_b_logo', { length: 255 }),
   firstScoreA: int('first_score_a'),
   firstScoreB: int('first_score_b'),
   secondScoreA: int('second_score_a'),
@@ -37,3 +39,18 @@ export const MatchPrediction = mysqlTable('match_prediction', {
   index('match_prediction_user_id_idx').on(table.userId),
   index('match_prediction_match_id_idx').on(table.matchId),
 ]);
+
+// 3. 이벤트 공통 배너 (AD ZONE). image는 업로드된 파일명
+export const MatchAd = mysqlTable('match_ad', {
+  id: int('id').autoincrement().primaryKey(),
+  image: varchar('image', { length: 255 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// 4. 이벤트 공통 상품 (1~3등). image는 업로드된 파일명
+export const MatchPrize = mysqlTable('match_prize', {
+  place: int('place').primaryKey(),
+  name: varchar('name', { length: 100 }).notNull(),
+  nameEn: varchar('name_en', { length: 100 }).notNull(),
+  image: varchar('image', { length: 255 }),
+});

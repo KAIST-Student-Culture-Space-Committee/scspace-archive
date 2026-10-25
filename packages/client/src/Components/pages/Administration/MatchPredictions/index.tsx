@@ -13,6 +13,7 @@ import { emptyPredictionFilters, filterPredictions, PredictionFilters } from "./
 import MatchInfoEditor from "./MatchInfoEditor";
 import TestPredictionForm from "./TestPredictionForm";
 import MatchCreateDialog from "./MatchCreateDialog";
+import { MatchAdDialog, MatchPrizeDialog } from "./MatchEventAssets";
 
 const dateFormatter = new Intl.DateTimeFormat("ko-KR", {
     timeZone: "Asia/Seoul",
@@ -71,7 +72,11 @@ export default function MatchPredictions() {
             <Stack borderWidth="1px" rounded="sm" p={3} gap={3} maxH="240px" overflowY="auto">
                 <Flex justify="space-between" align="center" gap={3}>
                     <Text fontWeight="semibold">경기 정보 및 접수 관리</Text>
-                    <MatchCreateDialog />
+                    <Flex gap={2} wrap="wrap">
+                        <MatchAdDialog />
+                        <MatchPrizeDialog />
+                        <MatchCreateDialog />
+                    </Flex>
                 </Flex>
                 {matches.isPending ? (
                     <Text color="fg.muted">loading match info...</Text>

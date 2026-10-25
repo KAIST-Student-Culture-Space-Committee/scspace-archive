@@ -14,7 +14,7 @@ import { Reservation, ReservationContent, } from './reservation';
 import { Rule } from './rule';
 import { Space } from './space';
 import { User } from './user';
-import { MatchInfo, MatchPrediction } from './match';
+import { MatchInfo, MatchPrediction, MatchAd, MatchPrize } from './match';
 
 // 스키마에 정의된 모든 테이블을 모아 내보냅니다.
 const schema = {
@@ -37,6 +37,8 @@ const schema = {
   User,
   MatchInfo,
   MatchPrediction,
+  MatchAd,
+  MatchPrize,
 };
 
 export {
@@ -61,4 +63,6 @@ export {
   User,
   MatchInfo,
   MatchPrediction,
+  MatchAd,
+  MatchPrize,
 };

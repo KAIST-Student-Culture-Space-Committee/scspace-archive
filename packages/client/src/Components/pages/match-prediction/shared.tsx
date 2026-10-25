@@ -4,7 +4,8 @@ import { Box, Button, Flex, Grid, Image, Stack, Text } from "@chakra-ui/react";
 import Scroll from "@scspace-client/Components/molecules/page/Scroll";
 import { useAuth } from "@scspace-client/Hooks/auth";
 import { useLinkPush } from "@scspace-client/Hooks/api";
-import { useMatchAPI } from "@scspace-client/Hooks/match";
+import { matchImageUrl, useMatchAPI } from "@scspace-client/Hooks/match";
+import { useMatchAds } from "@scspace-client/Hooks/match-event";
 import { dateUtils } from "@scspace-client/Hooks/utils";
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
@@ -29,36 +30,29 @@ export function MatchHeader({ active }: { active: string }) {
     </Flex>;
 }
 
-export function Announcement({ children }: { children: ReactNode }) {
-    return <Flex bg={colors.lime} color={colors.background} py={2} px={4} gap={3} justify="center" align="center">
-        <Image src={`${assets}/megaphone.svg`} alt="" flexShrink={0} /><Text fontSize={{ base: "12px", md: "17px" }} fontWeight="bold" textAlign="center" overflowWrap="anywhere">{children}</Text>
-    </Flex>;
-}
-
 export function MatchFooter() {
+    const ads = useMatchAds().data?.data ?? [];
     return <Box maxW="1440px" mx="auto" w="full">
-        <Stack bg={colors.background} px={{ base: 4, md: 12 }} pt={6} pb={4} gap={3}><Text color={colors.muted} fontSize="14px" letterSpacing="1.5px">AD ZONE</Text>
-            <Grid templateColumns={{ base: "repeat(2, 1fr)", md: "repeat(4, 1fr)" }} gap={{ base: 3, md: 4 }}>{Array.from({ length: 8 }, (_, index) => <Box key={index} bg="white" aspectRatio={{ base: "173 / 64", md: "324 / 72" }} />)}</Grid>
-        </Stack>
+        {ads.length > 0 && <Stack bg={colors.background} px={{ base: 4, md: 12 }} pt={6} pb={4} gap={3}><Text color={colors.muted} fontSize="14px" letterSpacing="1.5px">AD ZONE</Text>
+            <Grid templateColumns={{ base: "repeat(2, 1fr)", md: "repeat(4, 1fr)" }} gap={{ base: 3, md: 4 }}>{ads.map((ad, index) => <Box key={ad.id} bg="white" aspectRatio={{ base: "173 / 64", md: "324 / 72" }} overflow="hidden"><Image src={matchImageUrl(ad.image)} alt={`AD ${index + 1}`} w="full" h="full" objectFit="cover" /></Box>)}</Grid>
+        </Stack>}
         <Flex as="footer" px={{ base: 4, md: 12 }} py={6} gap={5} rowGap={2} wrap="wrap" fontSize="11px" color={colors.muted}>
-            <Text display="flex" gap="4px" color={colors.text} fontStyle="italic" fontFamily="var(--match-number-font), sans-serif" fontWeight="black">SCSPACE<Box as="span" color={colors.lime}>PLAY</Box></Text><Text>Student Cultural Space Committee</Text>
+            <Text display="flex" gap="4px" color={colors.text} fontStyle="italic" fontFamily="var(--match-number-font), sans-serif" fontWeight="black">SCSPACE<Box as="span" color={colors.lime}>PLAY</Box></Text><Text>Student Culture & Space Committee</Text>
             <Text flex={{ base: "1 0 100%", md: 1 }} textAlign={{ base: "left", md: "right" }}>SCSPACE</Text>
         </Flex>
     </Box>;
 }
 
-export function MatchShell({ active, announcement, children, event = false }: { active: string; announcement: ReactNode; children: ReactNode; event?: boolean }) {
-    return <Scroll><Box bg={colors.background} color={colors.text} minH="100dvh"><MatchHeader active={active} /><Announcement>{announcement}</Announcement>
+export function MatchShell({ active, children, event = false }: { active: string; children: ReactNode; event?: boolean }) {
+    return <Scroll><Box bg={colors.background} color={colors.text} minH="100dvh"><MatchHeader active={active} />
         <Box backgroundImage={event ? { base: `url('${assets}/event-stadium-mobile.png')`, md: `url('${assets}/event-stadium.png')` } : `linear-gradient(to bottom, rgba(9,12,16,.2), rgba(9,12,16,.76) 65%, #090c10), url('${assets}/stadium.png')`} backgroundSize={event ? "cover" : "100% 1050px, auto 1050px"} backgroundRepeat="no-repeat" backgroundPosition="top center">
             {children}<MatchFooter />
         </Box>
     </Box></Scroll>;
 }
 
-export function TeamLogo({ name, size = "52px" }: { name: string; size?: string | { base: string; md: string } }) {
-    const normalized = name.toLowerCase().replace(/\s/g, "");
-    const file = normalized.includes("barcelona") || normalized.includes("바르셀로나") ? "barcelona.png" : normalized.includes("realmadrid") || normalized.includes("레알마드리드") ? "real-madrid.png" : null;
-    return file ? <Image src={`${assets}/${file}`} alt={name} boxSize={size} objectFit="contain" flexShrink={0} /> : null;
+export function TeamLogo({ name, logo, size = "52px" }: { name: string; logo?: string | null; size?: string | { base: string; md: string } }) {
+    return logo ? <Image src={matchImageUrl(logo)} alt={name} boxSize={size} objectFit="contain" flexShrink={0} /> : null;
 }
 
 export function useEventMatch() {

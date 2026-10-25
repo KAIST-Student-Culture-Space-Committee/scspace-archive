@@ -2,6 +2,7 @@
 
 import { Button, Dialog, Field, Input, Portal, Stack, Text } from "@chakra-ui/react";
 import MatchStartTime from "./MatchStartTime";
+import MatchLogoField from "./MatchLogoField";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { useCreateMatchInfo } from "@scspace-client/Hooks/match";
@@ -14,13 +15,17 @@ export default function MatchCreateDialog() {
     const [open, setOpen] = useState(false);
     const [draft, setDraft] = useState(emptyDraft);
     const [startTime, setStartTime] = useState<number | null>(null);
+    const [logos, setLogos] = useState<{ teamA: File | null; teamB: File | null }>({ teamA: null, teamB: null });
     const mutation = useCreateMatchInfo();
-    const valid = startTime != null && Object.values(draft).every((value) => value.trim().length > 0);
+    const valid = startTime != null && Object.values(draft).every((value) => value.trim().length > 0) && !!logos.teamA && !!logos.teamB;
 
     function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
-        if (!valid || startTime == null || mutation.isPending) return;
-        mutation.mutate({ matchName: draft.matchName.trim(), teamA: draft.teamA.trim(), teamB: draft.teamB.trim(), startTime }, {
+        if (!valid || startTime == null || !logos.teamA || !logos.teamB || mutation.isPending) return;
+        mutation.mutate({
+            matchName: draft.matchName.trim(), teamA: draft.teamA.trim(), teamB: draft.teamB.trim(), startTime,
+            teamALogoFile: logos.teamA, teamBLogoFile: logos.teamB,
+        }, {
             onSuccess: ({ id }) => {
                 setOpen(false);
                 toaster.success({ title: `경기 #${id}가 추가되었습니다.` });
@@ -30,7 +35,7 @@ export default function MatchCreateDialog() {
 
     return (
         <Dialog.Root open={open} onOpenChange={({ open }) => { if (!mutation.isPending) setOpen(open); }}>
-            <Button size="sm" colorPalette="cyan" onClick={() => { setDraft(emptyDraft); setStartTime(null); mutation.reset(); setOpen(true); }}>경기 추가</Button>
+            <Button size="sm" colorPalette="cyan" onClick={() => { setDraft(emptyDraft); setStartTime(null); setLogos({ teamA: null, teamB: null }); mutation.reset(); setOpen(true); }}>경기 추가</Button>
             <Portal>
                 <Dialog.Backdrop />
                 <Dialog.Positioner>
@@ -47,6 +52,10 @@ export default function MatchCreateDialog() {
                                                 onChange={(event) => setDraft({ ...draft, [name]: event.target.value })} />
                                         </Field.Root>
                                     ))}
+                                    <MatchLogoField label="팀 A 로고" required file={logos.teamA} disabled={mutation.isPending}
+                                        onChange={(teamA) => setLogos({ ...logos, teamA })} />
+                                    <MatchLogoField label="팀 B 로고" required file={logos.teamB} disabled={mutation.isPending}
+                                        onChange={(teamB) => setLogos({ ...logos, teamB })} />
                                     <MatchStartTime value={startTime} onChange={setStartTime} disabled={mutation.isPending} />
                                     {mutation.isError && <Text role="alert" color="red.600">{mutation.error.message}</Text>}
                                 </Stack>

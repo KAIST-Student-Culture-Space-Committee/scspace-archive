@@ -9,8 +9,11 @@ import {
     ParseIntPipe,
     Patch,
     Post,
+    Put,
     Req,
+    UploadedFiles,
     UseGuards,
+    UseInterceptors,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AdminGuard } from '../auth/jwt/jwt.guard';
@@ -20,6 +23,9 @@ import { MatchPredictionRepository } from './match.prediction.repository';
 import { IMatchPredictionCreate, IMatchPredictionUpdate } from './match.model';
 import { parseContact, parseStartTime } from './match.submission';
 import { IMatchInfoUpdate } from '@scspace-depot/types/match';
+import { FileService } from '@scspace-server/tools/file/file.service';
+import { MatchLogoFiles, allLogoFilenames, logoFilenames } from './match.logo';
+import { MatchLogoInterceptor } from './match.logo.interceptor';
 
 type AuthenticatedRequest = Request & { user: IUser };
 type ScoreField = keyof IMatchPredictionUpdate;
@@ -30,7 +36,10 @@ const SCORE_FIELDS: ScoreField[] = ['firstScoreA', 'firstScoreB', 'secondScoreA'
 export class MatchController {
     private readonly logger = new Logger(MatchController.name);
 
-    constructor(private readonly matchRepo: MatchPredictionRepository) {}
+    constructor(
+        private readonly matchRepo: MatchPredictionRepository,
+        private readonly fileService: FileService,
+    ) {}
 
     private parseMatchInfoUpdate(body: unknown): IMatchInfoUpdate {
         if (!body || typeof body !== 'object' || Array.isArray(body)) {
@@ -172,16 +181,60 @@ export class MatchController {
 
     @Post()
     @UseGuards(AdminGuard)
-    async createMatchInfo(@Body() body: unknown) {
-        const data = this.parseMatchInfoUpdate(body);
-        if (!data.matchName || !data.teamA || !data.teamB || data.startTime == null ||
-            Object.keys(data).some((key) => !['matchName', 'teamA', 'teamB', 'startTime'].includes(key))) {
-            throw new BadRequestException('경기명, 팀 A, 팀 B를 입력해주세요.');
+    @UseInterceptors(MatchLogoInterceptor)
+    async createMatchInfo(@Body() body: unknown, @UploadedFiles() files?: MatchLogoFiles) {
+        try {
+            // multipart fields arrive as strings
+            const input = body && typeof body === 'object' ? { ...body } as Record<string, unknown> : body;
+            if (input && typeof input === 'object' && typeof (input as Record<string, unknown>).startTime === 'string') {
+                (input as Record<string, unknown>).startTime = Number((input as Record<string, unknown>).startTime);
+            }
+            const data = this.parseMatchInfoUpdate(input);
+            const { teamALogo, teamBLogo } = logoFilenames(files);
+            if (!data.matchName || !data.teamA || !data.teamB || data.startTime == null ||
+                Object.keys(data).some((key) => !['matchName', 'teamA', 'teamB', 'startTime'].includes(key))) {
+                throw new BadRequestException('경기명, 팀 A, 팀 B를 입력해주세요.');
+            }
+            if (!teamALogo || !teamBLogo) {
+                throw new BadRequestException('팀 A, 팀 B 로고 이미지를 모두 업로드해주세요.');
+            }
+            const id = await this.matchRepo.createMatchInfo({
+                matchName: data.matchName, teamA: data.teamA, teamB: data.teamB, startTime: data.startTime,
+                teamALogo, teamBLogo,
+            });
+            return { success: true, id };
+        } catch (error) {
+            await this.deleteFiles(allLogoFilenames(files));
+            throw error;
         }
-        const id = await this.matchRepo.createMatchInfo({
-            matchName: data.matchName, teamA: data.teamA, teamB: data.teamB, startTime: data.startTime,
-        });
-        return { success: true, id };
+    }
+
+    @Put(':matchId/logos')
+    @UseGuards(AdminGuard)
+    @UseInterceptors(MatchLogoInterceptor)
+    async updateMatchLogos(
+        @Param('matchId', ParseIntPipe) matchId: number,
+        @UploadedFiles() files?: MatchLogoFiles,
+    ) {
+        try {
+            const logos = logoFilenames(files);
+            if (!logos.teamALogo && !logos.teamBLogo) {
+                throw new BadRequestException('교체할 로고 이미지를 선택해주세요.');
+            }
+            const replaced = await this.matchRepo.updateMatchLogos(matchId, {
+                ...(logos.teamALogo && { teamALogo: logos.teamALogo }),
+                ...(logos.teamBLogo && { teamBLogo: logos.teamBLogo }),
+            });
+            await this.deleteFiles(replaced);
+            return { success: true };
+        } catch (error) {
+            await this.deleteFiles(allLogoFilenames(files));
+            throw error;
+        }
+    }
+
+    private async deleteFiles(filenames: string[]) {
+        await Promise.all(filenames.map((name) => this.fileService.deletePublicFile(name)));
     }
 
     @Patch(':matchId')

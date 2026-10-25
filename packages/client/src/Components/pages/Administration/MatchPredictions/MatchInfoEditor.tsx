@@ -6,7 +6,8 @@ import { getMatchNow } from "@scspace-client/Components/pages/match-prediction/m
 import { useState } from "react";
 import type { FormEvent } from "react";
 import type { IMatchInfo } from "@scspace-depot/types/match";
-import { useUpdateMatchInfo } from "@scspace-client/Hooks/match";
+import MatchLogoField from "./MatchLogoField";
+import { useUpdateMatchInfo, useUpdateMatchLogos } from "@scspace-client/Hooks/match";
 import { toaster } from "@scspace-client/Components/atoms/Toaster";
 import {
     buildMatchInfoUpdate,
@@ -28,34 +29,36 @@ function MatchInfoForm({
     const [draft, setDraft] = useState(initial);
     const [error, setError] = useState("");
     const submissionOpen = match.allowSubmission && match.startTime != null && getMatchNow() < match.startTime;
-    const dirty = (Object.keys(initial) as (keyof MatchInfoDraft)[]).some((field) => initial[field] !== draft[field]);
+    const [logos, setLogos] = useState<{ teamA: File | null; teamB: File | null }>({ teamA: null, teamB: null });
+    const logoMutation = useUpdateMatchLogos();
+    const pending = mutation.isPending || logoMutation.isPending;
+    const dirty = (Object.keys(initial) as (keyof MatchInfoDraft)[]).some((field) => initial[field] !== draft[field])
+        || !!logos.teamA || !!logos.teamB;
 
-    function submit(event: FormEvent) {
+    async function submit(event: FormEvent) {
         event.preventDefault();
 
-        if (mutation.isPending) return;
+        if (pending) return;
 
         setError("");
 
         try {
             const data = buildMatchInfoUpdate(initial, draft);
+            const hasLogos = !!logos.teamA || !!logos.teamB;
 
-            if (!Object.keys(data).length) return;
+            if (!Object.keys(data).length && !hasLogos) return;
 
-            mutation.mutate(
-                {
-                    matchId: match.id,
-                    data,
-                },
-                {
-                    onSuccess: () => {
-                        toaster.success({
-                            title: "경기 정보가 저장되었습니다.",
-                        });
-                        onClose();
-                    },
-                },
-            );
+            if (hasLogos) {
+                await logoMutation.mutateAsync({ matchId: match.id, teamALogoFile: logos.teamA, teamBLogoFile: logos.teamB });
+                setLogos({ teamA: null, teamB: null });
+            }
+            if (Object.keys(data).length) {
+                await mutation.mutateAsync({ matchId: match.id, data });
+            }
+            toaster.success({
+                title: "경기 정보가 저장되었습니다.",
+            });
+            onClose();
         } catch (error) {
             setError(
                 error instanceof Error
@@ -160,6 +163,12 @@ function MatchInfoForm({
                             </Field.Root>
                         ))}
                     </Grid>
+                    <Grid templateColumns="repeat(2, minmax(0, 1fr))" gap={4}>
+                        <MatchLogoField label="팀 A 로고" file={logos.teamA} current={match.teamALogo} disabled={pending}
+                            onChange={(teamA) => { setLogos({ ...logos, teamA }); setError(""); }} />
+                        <MatchLogoField label="팀 B 로고" file={logos.teamB} current={match.teamBLogo} disabled={pending}
+                            onChange={(teamB) => { setLogos({ ...logos, teamB }); setError(""); }} />
+                    </Grid>
 
                     <Stack
                         gap={4}
@@ -212,6 +221,11 @@ function MatchInfoForm({
                             {error || mutation.error?.message}
                         </Text>
                     )}
+                    {!error && !mutation.isError && logoMutation.isError && (
+                        <Text role="alert" color="red.600">
+                            {logoMutation.error.message}
+                        </Text>
+                    )}
                 </Stack>
             </Dialog.Body>
 
@@ -220,7 +234,7 @@ function MatchInfoForm({
                     type="button"
                     variant="outline"
                     onClick={onClose}
-                    disabled={mutation.isPending}
+                    disabled={pending}
                 >
                     취소
                 </Button>
@@ -228,7 +242,7 @@ function MatchInfoForm({
                 <Button
                     type="submit"
                     colorPalette="cyan"
-                    loading={mutation.isPending}
+                    loading={pending}
                     disabled={!dirty}
                 >
                     저장

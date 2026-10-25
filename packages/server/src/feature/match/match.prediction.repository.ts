@@ -4,7 +4,7 @@ import { MySql2Database } from 'drizzle-orm/mysql2';
 import { schema, MatchPrediction, MatchInfo, User } from '@schema';
 import { and, eq, desc } from 'drizzle-orm';
 import { IMatchPredictionInsert } from './match.model';
-import { IMatchActualScores, IMatchInfo, IMatchInfoCreate, IMatchInfoUpdate } from '@scspace-depot/types/match';
+import { IMatchActualScores, IMatchInfo, IMatchInfoCreate, IMatchInfoUpdate, IMatchLogoUpdate } from '@scspace-depot/types/match';
 import { assertSubmissionOpen, isSubmissionOpen } from './match.submission';
 import { getNow } from '../../common/utils';
 import { rankPredictionGroups } from './match.leaderboard';
@@ -72,6 +72,7 @@ export class MatchPredictionRepository {
   async createMatchInfo(data: IMatchInfoCreate) {
     const [result] = await this.db.insert(MatchInfo).values({
       matchName: data.matchName, teamA: data.teamA, teamB: data.teamB, startTime: data.startTime,
+      teamALogo: data.teamALogo, teamBLogo: data.teamBLogo,
       allowSubmission: false,
       firstScoreA: null, firstScoreB: null, secondScoreA: null, secondScoreB: null,
     });
@@ -97,6 +98,22 @@ export class MatchPredictionRepository {
       if (scoresChanged) {
         await tx.update(MatchPrediction).set(emptyGrades).where(eq(MatchPrediction.matchId, matchId));
       }
+    });
+  }
+
+  /** Replaces the given logos and returns the filenames they replaced, so callers can delete them. */
+  async updateMatchLogos(matchId: number, data: IMatchLogoUpdate) {
+    return this.db.transaction(async (tx) => {
+      const [match] = await tx.select().from(MatchInfo)
+        .where(eq(MatchInfo.id, matchId)).for('update');
+      if (!match) {
+        throw new NotFoundException(`경기 ID ${matchId}를 찾을 수 없습니다.`);
+      }
+      await tx.update(MatchInfo).set(data).where(eq(MatchInfo.id, matchId));
+      return [
+        data.teamALogo ? match.teamALogo : null,
+        data.teamBLogo ? match.teamBLogo : null,
+      ].filter((name): name is string => !!name);
     });
   }
 

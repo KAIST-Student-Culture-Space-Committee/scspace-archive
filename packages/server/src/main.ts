@@ -20,6 +20,8 @@ async function bootstrap() {
   console.log('Static files path:', uploadsPath);
 
   app.useStaticAssets(uploadsPath, { prefix: '/uploads' });
+  // nginx only forwards /api/* to this server, so expose the same files under /api/uploads too.
+  app.useStaticAssets(uploadsPath, { prefix: '/api/uploads' });
 
   // CORS 설정
   app.enableCors({

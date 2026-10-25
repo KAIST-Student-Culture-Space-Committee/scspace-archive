@@ -7,17 +7,8 @@ import { ISuccessResponse } from "@scspace-depot/types/common";
 
 const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
 
-async function requestMatchJson<ResponseType, RequestBody extends object>(
-    endpoint: string,
-    method: "POST" | "PATCH",
-    body: RequestBody,
-) {
-    const res = await fetch(`${baseUrl}${endpoint}`, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(body),
-    });
+export async function requestMatch<ResponseType>(endpoint: string, method: "POST" | "PATCH" | "PUT" | "DELETE", init: RequestInit = {}) {
+    const res = await fetch(`${baseUrl}${endpoint}`, { method, credentials: "include", ...init });
     if (!res.ok) {
         let msg = res.statusText;
         try { msg = (await res.json()).message || msg; } catch {}
@@ -25,6 +16,23 @@ async function requestMatchJson<ResponseType, RequestBody extends object>(
     }
     return res.json() as Promise<ResponseType>;
 }
+
+function requestMatchJson<ResponseType, RequestBody extends object>(
+    endpoint: string,
+    method: "POST" | "PATCH",
+    body: RequestBody,
+) {
+    return requestMatch<ResponseType>(endpoint, method, {
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+    });
+}
+
+export function matchImageUrl(filename: string) {
+    return `${baseUrl}/uploads/${encodeURIComponent(filename)}`;
+}
+
+type MatchCreateInput = Omit<IMatchInfoCreate, "teamALogo" | "teamBLogo"> & { teamALogoFile: File; teamBLogoFile: File };
 
 export function useMatchAPI() {
     const queryClient = useQueryClient();
@@ -104,9 +112,33 @@ export function useMatchSubmissionAdmin(enabled: boolean) {
 export function useCreateMatchInfo() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (data: IMatchInfoCreate) =>
-            requestMatchJson<ISuccessResponse & { id: number }, IMatchInfoCreate>("/match", "POST", data),
+        mutationFn: ({ teamALogoFile, teamBLogoFile, ...data }: MatchCreateInput) => {
+            const form = new FormData();
+            form.append("matchName", data.matchName);
+            form.append("teamA", data.teamA);
+            form.append("teamB", data.teamB);
+            form.append("startTime", String(data.startTime));
+            form.append("teamALogo", teamALogoFile);
+            form.append("teamBLogo", teamBLogoFile);
+            return requestMatch<ISuccessResponse & { id: number }>("/match", "POST", { body: form });
+        },
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/match"] }),
+    });
+}
+
+export function useUpdateMatchLogos() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ matchId, teamALogoFile, teamBLogoFile }: { matchId: number; teamALogoFile?: File | null; teamBLogoFile?: File | null }) => {
+            const form = new FormData();
+            if (teamALogoFile) form.append("teamALogo", teamALogoFile);
+            if (teamBLogoFile) form.append("teamBLogo", teamBLogoFile);
+            return requestMatch<ISuccessResponse>(`/match/${matchId}/logos`, "PUT", { body: form });
+        },
+        onSuccess: () => queryClient.invalidateQueries({
+            predicate: ({ queryKey }) => typeof queryKey[0] === "string" &&
+                (queryKey[0] === "/match" || queryKey[0].startsWith("/match/")),
+        }),
     });
 }
 

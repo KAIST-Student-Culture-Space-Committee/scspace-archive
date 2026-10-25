@@ -26,12 +26,12 @@ export default function MatchLeaderboard() {
     const currentA = hasFinalScore ? match?.secondScoreA : match?.firstScoreA;
     const currentB = hasFinalScore ? match?.secondScoreB : match?.firstScoreB;
     const updated = leaderboard.dataUpdatedAt ? new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Seoul", hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(leaderboard.dataUpdatedAt) : "—";
-    return <MatchShell active="leaderboard" announcement={hasScore ? "Match in progress · Rankings reflect the latest graded score." : "Rankings will appear after scoring begins."}>
+    return <MatchShell active="leaderboard">
         <Stack maxW="1440px" mx="auto" px={{ base: 4, md: 12 }} py={{ base: 6, md: 8 }} gap={6}>
             <Card compact><Flex justify="space-between" align="center"><Text bg={colors.lime} color={colors.background} rounded="4px" px={2} py={1} fontSize="14px" fontWeight="bold">{hasScore ? "● LIVE" : open ? "● OPEN" : "● WAITING"}</Text><Text color={colors.muted} fontSize="12px">Updated {updated} KST</Text></Flex>
-                <Flex gap={{ base: 2, md: 6 }} justify="center" align="center"><TeamLogo name={match?.teamA ?? "Team A"} size={{ base: "32px", md: "52px" }} /><Text fontSize={{ base: "12px", md: "22px" }} fontWeight="bold">{match?.teamA ?? "Team A"}</Text><Text color={colors.lime} fontSize={{ base: "28px", md: "40px" }} whiteSpace="nowrap" fontWeight="bold">{currentA ?? "—"} : {currentB ?? "—"}</Text><TeamLogo name={match?.teamB ?? "Team B"} size={{ base: "32px", md: "52px" }} /><Text fontSize={{ base: "12px", md: "22px" }} fontWeight="bold">{match?.teamB ?? "Team B"}</Text></Flex>
+                <Flex gap={{ base: 2, md: 6 }} justify="center" align="center"><TeamLogo name={match?.teamA ?? "Team A"} logo={match?.teamALogo} size={{ base: "32px", md: "52px" }} /><Text fontSize={{ base: "12px", md: "22px" }} fontWeight="bold">{match?.teamA ?? "Team A"}</Text><Text color={colors.lime} fontSize={{ base: "28px", md: "40px" }} whiteSpace="nowrap" fontWeight="bold">{currentA ?? "—"} : {currentB ?? "—"}</Text><TeamLogo name={match?.teamB ?? "Team B"} logo={match?.teamBLogo} size={{ base: "32px", md: "52px" }} /><Text fontSize={{ base: "12px", md: "22px" }} fontWeight="bold">{match?.teamB ?? "Team B"}</Text></Flex>
             </Card>
-            <Stack gap={2}><Text color={colors.lime} fontSize="12px" fontWeight="bold">LIVE LEADERBOARD</Text><Text as="h1" fontSize={{ base: "28px", md: "40px" }} lineHeight={{ base: "40px", md: "56px" }} fontWeight="black">Live Leaderboard</Text><Text color={colors.muted} fontSize="14px">What if the match ended now? These provisional rankings reflect the latest graded score.</Text></Stack>
+            <Stack gap={2}><Text color={colors.lime} fontSize="15px" fontWeight="bold">실시간 순위 리더보드</Text><Text as="h1" fontSize={{ base: "28px", md: "40px" }} lineHeight={{ base: "40px", md: "56px" }} fontWeight="black">Live Leaderboard</Text></Stack>
             <Card highlight compact><Text color={colors.lime} fontSize="14px" fontWeight="bold">My Current Rank</Text><Flex gap={6} align="center"><Text fontSize="48px" lineHeight="56px" fontWeight="black" fontStyle="italic" fontFamily="var(--match-number-font), sans-serif">{myRank ?? "—"}</Text><Text color={colors.muted} fontSize="14px">/ {count} players</Text><Text display={{ base: "none", md: "block" }} ml="auto" fontWeight="bold">{userInfo?.nameKr || userInfo?.nameEn}</Text></Flex></Card>
             {!!topRows.length && <Grid display={{ base: "none", md: "grid" }} templateColumns="repeat(3, minmax(0, 1fr))" gap={5}>{topRows.map(({ row, rank }) => <Card key={row.id} highlight={rank === 1}><Flex gap={3} align="center"><Text fontSize="48px" lineHeight="56px" fontWeight="black" fontStyle="italic" fontFamily="var(--match-number-font), sans-serif" color={colors.lime}>{rank}</Text><Text color={colors.muted} fontSize="14px">Current rank</Text></Flex><Text fontSize="22px" fontWeight="bold">{row.userName}</Text><Text color={colors.muted} fontSize="14px">Prediction {row.secondScoreA} : {row.secondScoreB}</Text></Card>)}</Grid>}
             <Flex justify="space-between" gap={2} fontSize="12px"><Text fontSize="16px" fontWeight="bold">All Rankings <Box as="span" color={colors.muted} fontSize="12px">{count} players</Box></Text><Text color={colors.muted}>Prediction: first · final</Text></Flex>
@@ -46,7 +46,13 @@ export default function MatchLeaderboard() {
                 </Flex>;
             })}</Stack>
             {ranked.some(({ rank }) => rank > limit) && <Button w={{ base: "full", md: "340px" }} bg={colors.surface} border="1px solid" borderColor={colors.border} color={colors.text} h="48px" onClick={() => setLimit(value => value + 10)}>See More Rankings ↓</Button>}
-            <Stack color={colors.muted} fontSize="12px" gap={1}><Text>Rankings may change as actual scores are entered and predictions are graded.</Text><Text>Ranked by exact final score, exact first-half score, match outcome, goal-difference error, then total score error. Tied players are listed by name.</Text></Stack>
+            <Stack color={colors.muted} fontSize="12px" gap={1}>
+                <Text>Rankings may change as actual scores are entered and predictions are graded.</Text>
+                <Text>Ranked by exact final score, exact first-half score, match outcome, goal-difference error, then total score error. Tied players are listed by name.</Text>
+                <Text />
+                <Text>순위는 골이 나올 때마다 공간위원이 실제 점수를 업데이트하면 실시간으로 결정되어 리더보드에 나타납니다.</Text>
+                <Text>점수 채점은 최종 점수 적중, 전반 점수 적중, 승패 적중, 골득실 오차, 그리고 총 점수 오차 합에 따라 결정됩니다. 동점자는 이름순으로 표시됩니다.</Text>
+            </Stack>
         </Stack>
     </MatchShell>;
 }

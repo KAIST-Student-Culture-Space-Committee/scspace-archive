@@ -5,14 +5,22 @@ export interface IMatchInfo {
     startTime: number | null;
     teamA: string;
     teamB: string;
+    // Uploaded logo filenames; null for matches created before logo upload existed.
+    teamALogo: string | null;
+    teamBLogo: string | null;
     firstScoreA: number | null;
     firstScoreB: number | null;
     secondScoreA: number | null;
     secondScoreB: number | null;
 }
 
-export type IMatchInfoUpdate = Partial<Omit<IMatchInfo, 'id' | 'allowSubmission'>>;
-export type IMatchInfoCreate = Pick<IMatchInfo, 'matchName' | 'teamA' | 'teamB'> & { startTime: number };
+export type IMatchInfoUpdate = Partial<Omit<IMatchInfo, 'id' | 'allowSubmission' | 'teamALogo' | 'teamBLogo'>>;
+export type IMatchInfoCreate = Pick<IMatchInfo, 'matchName' | 'teamA' | 'teamB'> & {
+    startTime: number;
+    teamALogo: string;
+    teamBLogo: string;
+};
+export type IMatchLogoUpdate = { teamALogo?: string; teamBLogo?: string };
 
 export interface IMatchPrediction {
     id: number;
