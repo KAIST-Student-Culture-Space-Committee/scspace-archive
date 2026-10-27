@@ -30,8 +30,8 @@ import ReservationCard, { IReservationRepeat } from "./ReservationCard";
 import { RepeatForm } from "./Repeat";
 import SubmitLog from "./SubmitLog";
 import { IReservationMultipleCreateResurt } from "@scspace-depot/types/reservation";
-import { DutyUtils } from "@scspace-depot/utils/duty.utils";
-import DutyNoticeDialog from "../DutyNoticeDialog";
+import { OfficeHoursUtils } from "@scspace-depot/utils/office-hours.utils";
+import OfficeHoursNoticeDialog from "../OfficeHoursNoticeDialog";
 
 export default function CreateReservation() {
     const { userInfo, needManager } = useAuth();
@@ -49,7 +49,7 @@ export default function CreateReservation() {
     const [worker, setWorker] = useState<boolean>(false);
     const [check, setCheck] = useState<boolean>(false);
     const [performance, setPerformance] = useState<boolean | null>(null);
-    const [dutyNoticeOpen, setDutyNoticeOpen] = useState<boolean>(false);
+    const [officeHoursNoticeOpen, setOfficeHoursNoticeOpen] = useState<boolean>(false);
 
     const createMultiReservation = useReservationAPI().createMultipleRes;
 
@@ -102,9 +102,9 @@ export default function CreateReservation() {
         const time = getTimeList();
         if (
             !(isPerformanceSpace && performance) &&
-            time.some(t => DutyUtils.overlapsDutyHours(t.timeFrom, t.timeTo))
+            time.some(t => OfficeHoursUtils.overlapsOfficeHours(t.timeFrom, t.timeTo))
         ) {
-            setDutyNoticeOpen(true);
+            setOfficeHoursNoticeOpen(true);
             return;
         }
 
@@ -182,9 +182,9 @@ export default function CreateReservation() {
 
     return (
         <Scroll>
-            <DutyNoticeDialog
-                open={dutyNoticeOpen}
-                setOpen={setDutyNoticeOpen}
+            <OfficeHoursNoticeDialog
+                open={officeHoursNoticeOpen}
+                setOpen={setOfficeHoursNoticeOpen}
                 onConfirm={() => send(getTimeList())}
                 showPerformanceHint={isPerformanceSpace}
             />

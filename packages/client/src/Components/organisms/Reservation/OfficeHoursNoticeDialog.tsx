@@ -1,8 +1,8 @@
 import { Button, Dialog, Portal, Text } from "@chakra-ui/react";
-import { DUTY_HOURS_KO } from "@scspace-depot/consts/duty.const";
+import { OFFICE_HOURS_KO } from "@scspace-depot/consts/office-hours.const";
 import { Dispatch, SetStateAction } from "react";
 
-export default function DutyNoticeDialog({ open, setOpen, onConfirm, showPerformanceHint }: {
+export default function OfficeHoursNoticeDialog({ open, setOpen, onConfirm, showPerformanceHint }: {
   open: boolean;
   setOpen: Dispatch<SetStateAction<boolean>>;
   onConfirm: () => void;
@@ -25,7 +25,7 @@ export default function DutyNoticeDialog({ open, setOpen, onConfirm, showPerform
             <Dialog.Body>
               <Text>상근시간에 예약을 하면 공간위원이 출입할 수도 있습니다.</Text>
               <Text color="fg.muted" fontSize="sm" mt={2}>
-                상근시간: {DUTY_HOURS_KO}
+                상근시간: {OFFICE_HOURS_KO}
               </Text>
               {showPerformanceHint && (
                 <Text color="fg.muted" fontSize="sm">

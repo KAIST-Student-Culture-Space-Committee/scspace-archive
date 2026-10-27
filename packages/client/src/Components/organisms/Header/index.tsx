@@ -11,7 +11,7 @@ import BreadcrumbComponent from "@scspace-client/Components/organisms/Header/Bre
 import Sidebar from "@scspace-client/Components/organisms/Header/Sidebar";
 import { useRedirects } from "@scspace-client/Store/redirect/reset";
 import PasspinHeader from "./Passpin";
-import DutyStatusHeader from "./DutyStatus";
+import OfficeHoursStatusHeader from "./OfficeHoursStatus";
 
 export default function Header() {
   useRedirects();
@@ -36,7 +36,7 @@ export default function Header() {
         <Sidebar />
         <BreadcrumbComponent />
         <Spacer />
-        <DutyStatusHeader />
+        <OfficeHoursStatusHeader />
         <PasspinHeader />
         <LoginBtn />
       </Flex>

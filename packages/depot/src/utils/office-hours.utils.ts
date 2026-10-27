@@ -1,7 +1,7 @@
-import { DUTY_HOURS } from "../consts/duty.const";
+import { OFFICE_HOURS } from "../consts/office-hours.const";
 
 // 예약 시간은 (((년*12 + 월(0~11))*32 + 일)*24 + 시)*60 + 분 으로 인코딩된 KST 기준 값
-export interface IDutyWindow {
+export interface IOfficeHoursWindow {
     timeFrom: number;
     timeTo: number;
 }
@@ -19,10 +19,10 @@ const decodeDate = (time: number) => {
 };
 
 // [rangeFrom, rangeTo)와 겹치는 상근시간 구간 목록 (각 구간은 상근시간 전체)
-const getDutyWindows = (rangeFrom: number, rangeTo: number): IDutyWindow[] => {
+const getOfficeHoursWindows = (rangeFrom: number, rangeTo: number): IOfficeHoursWindow[] => {
     if (rangeFrom >= rangeTo) return [];
 
-    const windows: IDutyWindow[] = [];
+    const windows: IOfficeHoursWindow[] = [];
     const start = decodeDate(rangeFrom);
     const end = decodeDate(rangeTo);
     const cursor = new Date(Date.UTC(start.year, start.month, start.date));
@@ -34,7 +34,7 @@ const getDutyWindows = (rangeFrom: number, rangeTo: number): IDutyWindow[] => {
         const date = cursor.getUTCDate();
         const dayOfWeek = cursor.getUTCDay() || 7;
 
-        for (const period of DUTY_HOURS) {
+        for (const period of OFFICE_HOURS) {
             if (period.dayOfWeek !== dayOfWeek) continue;
             const timeFrom = encode(year, month, date, period.startMinute);
             const timeTo = encode(year, month, date, period.endMinute);
@@ -48,17 +48,17 @@ const getDutyWindows = (rangeFrom: number, rangeTo: number): IDutyWindow[] => {
     return windows;
 };
 
-const getDutyOverlaps = (timeFrom: number, timeTo: number): IDutyWindow[] =>
-    getDutyWindows(timeFrom, timeTo).map((window) => ({
+const getOfficeHoursOverlaps = (timeFrom: number, timeTo: number): IOfficeHoursWindow[] =>
+    getOfficeHoursWindows(timeFrom, timeTo).map((window) => ({
         timeFrom: Math.max(window.timeFrom, timeFrom),
         timeTo: Math.min(window.timeTo, timeTo),
     }));
 
-const overlapsDutyHours = (timeFrom: number, timeTo: number): boolean =>
-    getDutyWindows(timeFrom, timeTo).length > 0;
+const overlapsOfficeHours = (timeFrom: number, timeTo: number): boolean =>
+    getOfficeHoursWindows(timeFrom, timeTo).length > 0;
 
-export const DutyUtils = {
-    getDutyWindows,
-    getDutyOverlaps,
-    overlapsDutyHours,
+export const OfficeHoursUtils = {
+    getOfficeHoursWindows,
+    getOfficeHoursOverlaps,
+    overlapsOfficeHours,
 };

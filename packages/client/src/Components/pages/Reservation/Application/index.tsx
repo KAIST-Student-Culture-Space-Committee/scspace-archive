@@ -9,6 +9,8 @@ import {
   Checkbox,
   Text,
   Alert,
+  HStack,
+  Link,
 } from "@chakra-ui/react";
 import {
   SpaceForm,
@@ -39,6 +41,15 @@ import { useAllSpace } from "@scspace-client/Hooks/space";
 import { useMyPenalty } from "@scspace-client/Hooks/penalty";
 import { PENALTY_SPACE_TYPE_LABEL } from "@scspace-depot/consts/penalty.const";
 import { PenaltyStageEnum } from "@scspace-depot/enums/penalty.enum";
+import { SpaceTypeEnum } from "@scspace-depot/enums/space.enum";
+import { OFFICE_HOURS_EN, OFFICE_HOURS_KO } from "@scspace-depot/consts/office-hours.const";
+
+const PHOTO_UPLOAD_SPACE_TYPES: SpaceTypeEnum[] = [
+  SpaceTypeEnum.WORK,
+  SpaceTypeEnum.GROUP,
+  SpaceTypeEnum.MIRAE,
+  SpaceTypeEnum.SUMI,
+]; // BEFORE/AFTER 장부
 
 export default function ReservationApplication() {
   const { userInfo, needLogin, isManager } = useAuth();
@@ -71,7 +82,7 @@ export default function ReservationApplication() {
   const [workerNeedReason, setWorkerNeedReason] = useState<string>("");
   const [performance, setPerformance] = useState<boolean | null>(null);
   const [reservationTypeConfirmed, setReservationTypeConfirmed] = useState(false);
-  const [dutyAccessConfirmed, setDutyAccessConfirmed] = useState(false);
+  const [officeHoursAccessConfirmed, setOfficeHoursAccessConfirmed] = useState(false);
   const [photoUploadConfirmed, setPhotoUploadConfirmed] = useState(false);
 
   const createReservation = useReservationAPI().createRes;
@@ -81,11 +92,14 @@ export default function ReservationApplication() {
 
   const isPerformanceSpace = spaceId === 10;
   const isIndividualReservation = orgId === IndividualOrganizationId;
-  const allConfirmationsChecked =
-    reservationTypeConfirmed && dutyAccessConfirmed && photoUploadConfirmed;
 
   const { spaces: allSpaces } = useAllSpace();
   const selectedSpaceType = allSpaces?.find((s) => s.id === spaceId)?.spaceType;
+
+  const needsPhotoUpload = selectedSpaceType !== undefined
+    && PHOTO_UPLOAD_SPACE_TYPES.includes(selectedSpaceType);
+  const allConfirmationsChecked =
+    reservationTypeConfirmed && officeHoursAccessConfirmed && (!needsPhotoUpload || photoUploadConfirmed);
 
   const { data: my } = useMyPenalty(!!userInfo && !isManager);
   const targetPenaltyDetail = orgId === IndividualOrganizationId
@@ -187,7 +201,7 @@ export default function ReservationApplication() {
     <Scroll>
       <Stack>
         <Text color="fg.subtle">
-          {'Before making a reservation, please register your organization under "My Page > Organization."'}
+          {'Before making a reservation, please register your organization under "Mypage > Organization."'}
         </Text>
         <Grid
           templateColumns="repeat(6, 1fr)"
@@ -223,27 +237,27 @@ export default function ReservationApplication() {
           )}
           <GridItem colSpan={{ base: 6, md: 3 }}>
             <DateForm
-              label="start date"
+              label="Start Date"
               date={dateFrom}
               setDate={setDateFrom}
             />
           </GridItem>
           <GridItem colSpan={{ base: 6, md: 3 }}>
             <DateForm
-              label="end date"
+              label="End Date"
               date={dateTo}
               setDate={setDateTo}
             />
           </GridItem>
           <GridItem colSpan={{ base: 6, md: 3 }}>
             <HourForm
-              label="start time"
+              label="Start Time"
               setHour={setHourFrom}
             />
           </GridItem>
           <GridItem colSpan={{ base: 6, md: 3 }}>
             <HourForm
-              label="end time"
+              label="End Time"
               setHour={setHourTo}
             />
           </GridItem>
@@ -326,34 +340,62 @@ export default function ReservationApplication() {
             <Checkbox.HiddenInput />
             <Checkbox.Control />
             <Checkbox.Label>
-              예약 주체가 {isIndividualReservation ? "개인 예약" : "조직 예약"}으로 올바르게 선택되었는지 확인했습니다.
+              <Text as="span" display="block">
+                예약 주체가 {isIndividualReservation ? "개인 예약" : "조직 예약"}으로 올바르게 선택되었는지 확인했습니다.
+              </Text>
+              <Text as="span" display="block" color="fg.muted" fontSize="sm">
+                I have confirmed that this reservation is correctly created as {isIndividualReservation ? "an individual reservation" : "an organization reservation"}.
+              </Text>
             </Checkbox.Label>
           </Checkbox.Root>
           <Checkbox.Root
-            checked={dutyAccessConfirmed}
-            onCheckedChange={(e) => setDutyAccessConfirmed(!!e.checked)}
+            checked={officeHoursAccessConfirmed}
+            onCheckedChange={(e) => setOfficeHoursAccessConfirmed(!!e.checked)}
           >
             <Checkbox.HiddenInput />
             <Checkbox.Control />
             <Checkbox.Label>
               <Text as="span" display="block">
-                상근시간 중에는 공간위원이 공간에 출입할 수 있음을 확인했습니다.
+                상근시간 중에는 공간위원이 공간에 출입할 수 있음을 확인했습니다. (상근시간: {OFFICE_HOURS_KO})
               </Text>
               <Text as="span" display="block" color="fg.muted" fontSize="sm">
-                상근시간: 월~수요일 19:00~21:00, 목요일 21:00~23:00
+                I acknowledge that Space Committee staffs may enter the space during office hours. (Office hours: {OFFICE_HOURS_EN})
               </Text>
             </Checkbox.Label>
           </Checkbox.Root>
-          <Checkbox.Root
-            checked={photoUploadConfirmed}
-            onCheckedChange={(e) => setPhotoUploadConfirmed(!!e.checked)}
-          >
-            <Checkbox.HiddenInput />
-            <Checkbox.Control />
-            <Checkbox.Label>
-              공간 이용 전·후 사진을 촬영하여 구글 폼에 업로드하겠습니다.
-            </Checkbox.Label>
-          </Checkbox.Root>
+          {needsPhotoUpload && (
+            <HStack gap={3} wrap="wrap">
+              <Checkbox.Root
+                checked={photoUploadConfirmed}
+                onCheckedChange={(e) => setPhotoUploadConfirmed(!!e.checked)}
+              >
+                <Checkbox.HiddenInput />
+                <Checkbox.Control />
+                <Checkbox.Label>
+                  <Text as="span" display="block">
+                    공간 이용 전/후 사진을 촬영하여 BEFORE/AFTER 장부 구글폼에 업로드하겠습니다.
+                  </Text>
+                  <Text as="span" display="block" color="fg.muted" fontSize="sm">
+                    I will take photos of the space before and after use and upload them to the BEFORE/AFTER Log Google Form.
+                  </Text>
+                  
+                </Checkbox.Label>
+              </Checkbox.Root>
+              <Link
+                href="/browse"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button
+                  size="xs"
+                  variant="outline"
+                  colorPalette="blue"
+                >
+                  Open Google Form
+                </Button>
+              </Link>
+            </HStack>
+          )}
         </Stack>
         {isRestricted && restrictedSpaceState && (
           <Alert.Root status="error">

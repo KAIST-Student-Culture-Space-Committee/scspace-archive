@@ -8,10 +8,10 @@ export function FoodForm({ food, setFood }: {
   return (
     <InputComponent
       label="Food"
-      placeholder="explanation about food"
+      placeholder="Explanation About Food/Beverage"
       value={food}
       onChange={setFood}
-      helpertext="Please explain what food you will eat in the space if you have."
+      helpertext="Please explain what food/beverage you will eat/drink in the space if you have."
     />
   );
 }

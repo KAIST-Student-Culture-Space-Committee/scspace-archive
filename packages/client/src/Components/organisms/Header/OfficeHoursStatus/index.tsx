@@ -6,10 +6,10 @@ import { useAuth } from "@scspace-client/Hooks/auth";
 import { useQueryApi } from "@scspace-client/Hooks/api";
 import { useAllSpace } from "@scspace-client/Hooks/space";
 import { getBusinessNow } from "@scspace-client/Hooks/utils";
-import { DutyUtils } from "@scspace-depot/utils/duty.utils";
+import { OfficeHoursUtils } from "@scspace-depot/utils/office-hours.utils";
 import { IReservationAll } from "@scspace-depot/types/reservation";
 
-export default function DutyStatusHeader() {
+export default function OfficeHoursStatusHeader() {
     const { isManager } = useAuth();
     const { spaces } = useAllSpace();
     const [now, setNow] = useState<number>(getBusinessNow);
@@ -19,15 +19,15 @@ export default function DutyStatusHeader() {
         return () => clearInterval(timer);
     }, []);
 
-    const DUTY_MARGIN = 60;
-    const dutyWindow = DutyUtils.getDutyWindows(now - DUTY_MARGIN, now + DUTY_MARGIN + 1)[0];
+    const OFFICE_HOURS_MARGIN = 60;
+    const officeHoursWindow = OfficeHoursUtils.getOfficeHoursWindows(now - OFFICE_HOURS_MARGIN, now + OFFICE_HOURS_MARGIN + 1)[0];
 
     const { data, refetch } = useQueryApi<IReservationAll[]>(
-        isManager && dutyWindow ? "/reservation/duty" : "",
-        dutyWindow ? { timeFrom: dutyWindow.timeFrom - DUTY_MARGIN, timeTo: dutyWindow.timeTo + DUTY_MARGIN } : undefined,
+        isManager && officeHoursWindow ? "/reservation/office-hours" : "",
+        officeHoursWindow ? { timeFrom: officeHoursWindow.timeFrom - OFFICE_HOURS_MARGIN, timeTo: officeHoursWindow.timeTo + OFFICE_HOURS_MARGIN } : undefined,
     );
 
-    if (!isManager || !dutyWindow || !spaces) return null;
+    if (!isManager || !officeHoursWindow || !spaces) return null;
 
     const getStatus = (spaceId: number) => {
         const current = (data ?? []).filter(

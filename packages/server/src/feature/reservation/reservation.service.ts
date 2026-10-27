@@ -669,7 +669,7 @@ export class ReservationService {
     return await this.toReservationAll(reservations);
   }
 
-  async getDutyReservation(
+  async getOfficeHoursReservation(
     timeFrom: number,
     timeTo: number,
   ): Promise<IReservationAll[]> {
