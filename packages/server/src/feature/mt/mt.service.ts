@@ -2,7 +2,6 @@ import { BadRequestException, Injectable, OnModuleDestroy, OnModuleInit } from '
 import { IUser } from '@scspace-depot/types/user';
 import {
     IMtLog,
-    IMtRename,
     IMtResult,
     IMtSettings,
     IMtState,
@@ -22,16 +21,16 @@ import {
     MT_OFFLINE_MS,
     MT_RENAME_EXTRA,
     MT_RETURN_LIMIT,
-    MT_TREAT_CANDY,
     MT_TRIAL_TRIM,
     mtCandyForHold,
     mtGraphemes,
 } from '@scspace-depot/consts/mt.const';
 import {
     explodeRange,
-    pickKing,
+    rankByCandy,
     returnKey,
     steal,
+    survivalBonus,
     topTypos,
     totOutcome,
     transformNickname,
@@ -56,6 +55,7 @@ interface Player {
 }
 
 const HARD_MODES: MtHardMode[] = ['PARTIAL', 'CHOSEONG', 'SHUFFLE', 'BLINK'];
+const TIMED_PHASES: MtTimedPhase[] = ['ROUND_START', 'TOT_CHOOSE', 'TOT_STEAL', 'RENAME', 'TRIAL_VOTE'];
 const pickRandom = <T>(items: T[]): T => items[Math.floor(Math.random() * items.length)];
 
 /**
@@ -85,13 +85,10 @@ export class MtService implements OnModuleInit, OnModuleDestroy {
     private explosion: IMtState['explosion'] = null;
     private tot: { trickIds: number[]; outcome: MtTotOutcome } | null = null;
     private stealOrder: number[] = [];
-    private renames: IMtRename[] = [];
-    private namingVotes = new Map<number, Map<number, boolean>>();
+    private renamedIds = new Set<number>();
     private logs: IMtLog[] = [];
     private logId = 0;
     private typos: string[] = [];
-    private kingId: number | null = null;
-    private kingTargetIds: number[] | null = null;
 
     onModuleInit() {
         this.interval = setInterval(() => this.heartbeat(), 1000);
@@ -137,6 +134,9 @@ export class MtService implements OnModuleInit, OnModuleDestroy {
             round: this.round,
             totalRounds: this.settings.totalRounds,
             renameCost: this.settings.renameCost,
+            treatCandy: this.settings.treatCandy,
+            typoPenalty: this.settings.typoPenalty,
+            survivalMultiplier: this.settings.survivalMultiplier,
             deadline: this.phase === 'HOLDING' ? null : this.deadline,
             hardMode: this.hardMode,
             holderId: this.holderId,
@@ -156,16 +156,12 @@ export class MtService implements OnModuleInit, OnModuleDestroy {
                 lockedUntil: me.lockedUntil,
                 totChoice: me.totChoice,
                 stealTargetId: me.stealTargetId,
-                renameSubmitted: this.renames.some((r) => r.userId === me.userId),
-                namingVotes: Object.fromEntries(
-                    [...this.namingVotes].filter(([, votes]) => votes.has(me.userId)).map(([id, votes]) => [id, votes.get(me.userId)]),
-                ),
+                renamed: this.renamedIds.has(me.userId),
                 trialVoteId: me.trialVoteId,
             } : null,
             logs: this.logs.slice(-MT_LOG_LIMIT),
             explosion: this.explosion,
             tot: this.tot,
-            renames: admin || this.phase === 'NAMING_VOTE' ? this.renames : [],
             result: this.phase === 'GAME_OVER' ? this.result() : null,
             ...(admin && {
                 settings: this.settings,
@@ -177,9 +173,9 @@ export class MtService implements OnModuleInit, OnModuleDestroy {
 
     private result(): IMtResult {
         return {
-            kingId: this.kingId,
-            kingTargetIds: this.kingTargetIds,
-            players: [...this.players.values()].map((p) => ({ userId: p.userId, nickname: p.nickname, explodeCount: p.explodeCount, candy: p.banked })),
+            players: rankByCandy([...this.players.values()].map((p) => ({
+                userId: p.userId, nickname: p.nickname, candy: p.banked, explodeCount: p.explodeCount,
+            }))),
             topTypos: topTypos(this.typos),
         };
     }
@@ -207,8 +203,10 @@ export class MtService implements OnModuleInit, OnModuleDestroy {
         const target = [...this.players.values()].find((p) => p.userId !== userId && p.nickname === text);
         if (!target) {
             me.lockedUntil = now + MT_MISS_LOCK_MS;
+            // banked, not round candy: the penalty must survive an explosion
+            me.banked -= this.settings.typoPenalty;
             this.typos.push(text);
-            this.log('{a}의 "{q}" 주문이 빗나갔다!', userId, undefined, text);
+            this.log(`{a}의 "{q}" 주문이 빗나갔다! 🍬-${this.settings.typoPenalty}`, userId, undefined, text);
             this.bump();
             return { hit: false };
         }
@@ -251,25 +249,15 @@ export class MtService implements OnModuleInit, OnModuleDestroy {
         this.requirePhase('RENAME');
         const me = this.requirePlayer(userId);
         if (me.banked < this.settings.renameCost) throw new BadRequestException('Not enough candy');
-        if (this.renames.some((r) => r.userId === userId)) throw new BadRequestException('Already renamed this round');
+        if (this.renamedIds.has(userId)) throw new BadRequestException('Already renamed this round');
         if (nickname === me.nickname) throw new BadRequestException('Same as current nickname');
-        const taken = [...this.otherNicknames(userId), ...this.renames.map((r) => r.newNickname)];
-        const error = validateNickname(nickname, mtGraphemes(me.nickname).length + MT_RENAME_EXTRA, taken);
+        const error = validateNickname(nickname, mtGraphemes(me.nickname).length + MT_RENAME_EXTRA, this.otherNicknames(userId));
         if (error) throw new BadRequestException(error);
+        const oldNickname = me.nickname;
         me.banked -= this.settings.renameCost;
-        this.renames.push({ userId, oldNickname: me.nickname, newNickname: nickname as string });
-        this.log('✍️ {a} 개명 신청!', userId);
-        this.bump();
-    }
-
-    voteNaming(userId: number, targetId: unknown, approve: unknown) {
-        this.requirePhase('NAMING_VOTE');
-        this.requirePlayer(userId);
-        if (typeof approve !== 'boolean') throw new BadRequestException('approve must be a boolean');
-        if (userId === targetId) throw new BadRequestException('You cannot vote on your own name');
-        const votes = this.namingVotes.get(targetId as number);
-        if (!votes) throw new BadRequestException('No such rename');
-        votes.set(userId, approve);
+        me.nickname = nickname as string;
+        this.renamedIds.add(userId);
+        this.log('✍️ "{q}" → {a} 개명!', userId, undefined, oldNickname);
         this.bump();
     }
 
@@ -277,17 +265,6 @@ export class MtService implements OnModuleInit, OnModuleDestroy {
         this.requirePhase('TRIAL_VOTE');
         const me = this.requirePlayer(userId);
         me.trialVoteId = this.requireOther(userId, targetId).userId;
-        this.bump();
-    }
-
-    chooseKingTargets(userId: number, targetIds: unknown) {
-        this.requirePhase('GAME_OVER');
-        if (this.kingId !== userId) throw new BadRequestException('Only the pumpkin king can choose');
-        if (!Array.isArray(targetIds) || targetIds.length !== 2 || targetIds[0] === targetIds[1]) {
-            throw new BadRequestException('Choose two different players');
-        }
-        this.kingTargetIds = targetIds.map((id) => this.requireOther(userId, id).userId);
-        this.log('👑 호박왕의 명령! {a}, {t} 마셔라!', this.kingTargetIds[0], this.kingTargetIds[1]);
         this.bump();
     }
 
@@ -344,10 +321,16 @@ export class MtService implements OnModuleInit, OnModuleDestroy {
             phaseSeconds: { ...this.settings.phaseSeconds, ...input.phaseSeconds },
             hardModes: { ...this.settings.hardModes, ...input.hardModes },
         };
-        const positiveInt = (v: unknown) => Number.isInteger(v) && (v as number) >= 1 && (v as number) <= 3600;
+        const int = (v: unknown, min: number, max: number) => Number.isInteger(v) && (v as number) >= min && (v as number) <= max;
         const numbers = [next.timerMin, next.timerMax, next.renameCost, next.trialEvery, next.totalRounds, ...Object.values(next.phaseSeconds)];
-        if (!numbers.every(positiveInt) || Object.keys(next.phaseSeconds).length !== 6) {
+        if (!numbers.every((v) => int(v, 1, 3600)) || Object.keys(next.phaseSeconds).length !== TIMED_PHASES.length) {
             throw new BadRequestException('Numbers must be integers between 1 and 3600');
+        }
+        if (!int(next.typoPenalty, 0, 100) || !int(next.treatCandy, 0, 100)) {
+            throw new BadRequestException('typoPenalty and treatCandy must be integers between 0 and 100');
+        }
+        if (!Number.isFinite(next.survivalMultiplier) || next.survivalMultiplier < 0 || next.survivalMultiplier > 10) {
+            throw new BadRequestException('survivalMultiplier must be 0~10');
         }
         if (next.timerMax < next.timerMin) throw new BadRequestException('timerMax must be >= timerMin');
         if (!Number.isFinite(next.rouletteChance) || next.rouletteChance < 0 || next.rouletteChance > 100) {
@@ -385,9 +368,7 @@ export class MtService implements OnModuleInit, OnModuleDestroy {
         this.players.delete(userId);
         if (this.lastFromId === userId) this.lastFromId = null;
         if (this.grudgeHolderId === userId) this.grudgeHolderId = null;
-        this.renames = this.renames.filter((r) => r.userId !== userId);
-        this.namingVotes.delete(userId);
-        for (const votes of this.namingVotes.values()) votes.delete(userId);
+        this.renamedIds.delete(userId);
         this.stealOrder = this.stealOrder.filter((id) => id !== userId);
         this.bump();
     }
@@ -445,12 +426,7 @@ export class MtService implements OnModuleInit, OnModuleDestroy {
                 this.resolveSteal();
                 return this.enterTimed('RENAME');
             case 'RENAME':
-                if (!this.renames.length) return this.afterNaming();
-                this.namingVotes = new Map(this.renames.map((r) => [r.userId, new Map()]));
-                return this.enterTimed('NAMING_VOTE');
-            case 'NAMING_VOTE':
-                this.resolveNaming();
-                return this.afterNaming();
+                return this.afterRename();
             case 'TRIAL_VOTE':
                 this.resolveTrial();
                 return this.endRound();
@@ -467,8 +443,7 @@ export class MtService implements OnModuleInit, OnModuleDestroy {
         this.explosion = null;
         this.tot = null;
         this.stealOrder = [];
-        this.renames = [];
-        this.namingVotes.clear();
+        this.renamedIds.clear();
         for (const p of this.players.values()) {
             Object.assign(p, { totChoice: null, stealTargetId: null, trialVoteId: null, lockedUntil: 0 });
         }
@@ -510,7 +485,7 @@ export class MtService implements OnModuleInit, OnModuleDestroy {
     private explode() {
         const victim = this.players.get(this.holderId);
         for (const p of this.players.values()) {
-            if (p !== victim) p.banked += p.roundCandy;
+            if (p !== victim) p.banked += p.roundCandy + survivalBonus(p.nickname, this.settings.survivalMultiplier);
             p.roundCandy = 0;
         }
         this.holderId = null;
@@ -523,6 +498,7 @@ export class MtService implements OnModuleInit, OnModuleDestroy {
             this.explosion = { victimId: victim.userId, drink, drinks: drink ? drinks : [] };
             this.log(drink ? '💥 {a} 폭발! 룰렛 결과: {q}' : '💥 {a} 폭발! 한 잔!', victim.userId, undefined, drink ?? undefined);
         }
+        this.log('🍬 생존자에게 이름 난이도만큼 사탕 지급');
         this.enter('EXPLODED', null);
     }
 
@@ -530,7 +506,7 @@ export class MtService implements OnModuleInit, OnModuleDestroy {
         const players = [...this.players.values()];
         const trickIds = players.filter((p) => p.totChoice === 'TRICK').map((p) => p.userId);
         const outcome = totOutcome(trickIds.length, players.length);
-        for (const p of players) if (p.totChoice !== 'TRICK') p.banked += MT_TREAT_CANDY;
+        for (const p of players) if (p.totChoice !== 'TRICK') p.banked += this.settings.treatCandy;
         if (outcome === 'CAUGHT') {
             for (const id of trickIds) {
                 const p = this.players.get(id);
@@ -561,22 +537,7 @@ export class MtService implements OnModuleInit, OnModuleDestroy {
         }
     }
 
-    private resolveNaming() {
-        for (const r of this.renames) {
-            const player = this.players.get(r.userId);
-            if (!player) continue;
-            const votes = [...(this.namingVotes.get(r.userId)?.values() ?? [])];
-            const voters = this.players.size - 1;
-            if (votes.filter((v) => !v).length > voters / 2) {
-                this.log('👎 {a}의 새 이름 "{q}" 거부! 한 잔', r.userId, undefined, r.newNickname);
-            } else if (this.tryRename(player, r.newNickname)) {
-                this.log('👍 {a}의 새 이름 승인!', r.userId);
-            }
-        }
-        this.renames = [];
-    }
-
-    private afterNaming() {
+    private afterRename() {
         if (this.round % this.settings.trialEvery !== 0) return this.endRound();
         for (const p of this.players.values()) p.trialVoteId = null;
         this.enterTimed('TRIAL_VOTE');
@@ -592,8 +553,7 @@ export class MtService implements OnModuleInit, OnModuleDestroy {
 
     private endRound() {
         if (this.round < this.settings.totalRounds) return this.startRound(this.round + 1);
-        this.kingId = pickKing([...this.players.values()].map((p) => ({ ...p, candy: p.banked })))?.userId ?? null;
-        this.log('👑 게임 종료! 호박왕: {a}', this.kingId ?? undefined);
+        for (const king of this.result().players.filter((p) => p.rank === 1)) this.log('👑 게임 종료! 호박왕: {a}', king.userId);
         this.enter('GAME_OVER', null);
     }
 

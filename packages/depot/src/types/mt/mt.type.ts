@@ -6,11 +6,10 @@ export type MtPhase =
     | 'TOT_CHOOSE'
     | 'TOT_STEAL'
     | 'RENAME'
-    | 'NAMING_VOTE'
     | 'TRIAL_VOTE'
     | 'GAME_OVER';
 
-export type MtTimedPhase = 'ROUND_START' | 'TOT_CHOOSE' | 'TOT_STEAL' | 'RENAME' | 'NAMING_VOTE' | 'TRIAL_VOTE';
+export type MtTimedPhase = 'ROUND_START' | 'TOT_CHOOSE' | 'TOT_STEAL' | 'RENAME' | 'TRIAL_VOTE';
 export type MtHardMode = 'PARTIAL' | 'CHOSEONG' | 'SHUFFLE' | 'BLINK';
 export type MtTotChoice = 'TRICK' | 'TREAT';
 export type MtTotOutcome = 'STEAL' | 'NONE' | 'CAUGHT';
@@ -21,6 +20,11 @@ export interface IMtSettings {
     renameCost: number;
     trialEvery: number;
     totalRounds: number;
+    /** candy lost per typo */
+    typoPenalty: number;
+    treatCandy: number;
+    /** survivors get floor(nickname touch count × this) candy per explosion */
+    survivalMultiplier: number;
     phaseSeconds: Record<MtTimedPhase, number>;
     hardMode: boolean;
     hardModes: Record<MtHardMode, boolean>;
@@ -59,21 +63,13 @@ export interface IMtMe {
     lockedUntil: number;
     totChoice: MtTotChoice | null;
     stealTargetId: number | null;
-    renameSubmitted: boolean;
-    namingVotes: Record<number, boolean>;
+    renamed: boolean;
     trialVoteId: number | null;
 }
 
-export interface IMtRename {
-    userId: number;
-    oldNickname: string;
-    newNickname: string;
-}
-
 export interface IMtResult {
-    kingId: number | null;
-    kingTargetIds: number[] | null;
-    players: { userId: number; nickname: string; explodeCount: number; candy: number }[];
+    /** Sorted by rank; ties share a rank. Rank k drinks k cups, rank 1 is the pumpkin king. */
+    players: { userId: number; nickname: string; candy: number; explodeCount: number; rank: number }[];
     topTypos: { text: string; count: number }[];
 }
 
@@ -86,6 +82,9 @@ export interface IMtState {
     round: number;
     totalRounds: number;
     renameCost: number;
+    treatCandy: number;
+    typoPenalty: number;
+    survivalMultiplier: number;
     /** End of the current timed phase; null while HOLDING so the explosion time stays hidden. */
     deadline: number | null;
     hardMode: MtHardMode | null;
@@ -98,7 +97,6 @@ export interface IMtState {
     logs: IMtLog[];
     explosion: { victimId: number; drink: string | null; drinks: string[] } | null;
     tot: { trickIds: number[]; outcome: MtTotOutcome } | null;
-    renames: IMtRename[];
     result: IMtResult | null;
     /** admin only */
     settings?: IMtSettings;

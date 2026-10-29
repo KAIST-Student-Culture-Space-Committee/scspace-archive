@@ -51,21 +51,10 @@ export class MtController {
         return { success: true };
     }
 
-    @Post('vote/naming')
-    voteNaming(@Req() req: Request, @Body() body: { targetUserId?: unknown; approve?: unknown }) {
-        this.mtService.voteNaming(userOf(req).id, body?.targetUserId, body?.approve);
-        return { success: true };
-    }
-
     @Post('vote/trial')
     voteTrial(@Req() req: Request, @Body() body: { targetUserId?: unknown }) {
         this.mtService.voteTrial(userOf(req).id, body?.targetUserId);
         return { success: true };
     }
 
-    @Post('king')
-    king(@Req() req: Request, @Body() body: { targetUserIds?: unknown }) {
-        this.mtService.chooseKingTargets(userOf(req).id, body?.targetUserIds);
-        return { success: true };
-    }
 }

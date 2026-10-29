@@ -12,6 +12,7 @@ import {
     MT_RENAME_EXTRA,
     mtCandyForHold,
     mtGraphemes,
+    mtTouchCount,
 } from "@scspace-depot/consts/mt.const";
 import { useAuth } from "@scspace-client/Hooks/auth";
 import { MtClientState, useMtAction, useMtNow, useMtState } from "@scspace-client/Hooks/mt";
@@ -79,7 +80,7 @@ function Holding({ state, now, act }: { state: MtClientState; now: number; act: 
             ))}
         </Stack>
         {isHolder && <Box style={locked ? { animation: "mt-shake .3s" } : undefined}>
-            <NicknameInput max={MT_NICKNAME_MAX} placeholder="넘길 사람의 닉네임" disabled={locked || act.isPending}
+            <NicknameInput max={MT_NICKNAME_MAX} placeholder={`넘길 사람의 닉네임 (오타 시 🍬-${state.typoPenalty})`} disabled={locked || act.isPending}
                 buttonLabel={locked ? "🔒" : "시전!"}
                 onSubmit={(text, clear) => act.mutate({ endpoint: "/mt/pass", body: { text } }, { onSuccess: (r) => { if (r.hit) clear(); } })} />
         </Box>}
@@ -121,7 +122,7 @@ function Phase({ state, now, act }: { state: MtClientState; now: number; act: Ac
         case "TOT_CHOOSE":
             return <Stack gap={4}>
                 <Title>🍬 Trick or Treat?</Title>
-                <Muted>Trick이 적으면 이름을 훔치고, 많으면 들켜서 마셔요. Treat은 사탕 +5</Muted>
+                <Muted>Trick이 적으면 이름을 훔치고, 많으면 들켜서 마셔요. Treat은 사탕 +{state.treatCandy}</Muted>
                 <Grid templateColumns="1fr 1fr" gap={3}>
                     {(["TRICK", "TREAT"] as const).map((choice) => (
                         <Button key={choice} h="96px" fontSize="24px" fontWeight="black"
@@ -144,41 +145,13 @@ function Phase({ state, now, act }: { state: MtClientState; now: number; act: Ac
                     <Title>🦇 Trick {state.tot?.trickIds.length}명이 이름을 훔치는 중…</Title>
                     <Muted>{state.tot?.trickIds.map(nameOf).join(", ")}</Muted>
                 </Stack>;
-        case "RENAME": {
-            const max = Math.min(MT_NICKNAME_MAX, mtGraphemes(me.nickname).length + MT_RENAME_EXTRA);
-            if (me.renameSubmitted) return <Title>✍️ 개명 신청 완료! 명명식을 기다려요</Title>;
+        case "RENAME":
+            if (me.renamed) return <Title>✍️ 개명 완료!</Title>;
             if (me.candy < state.renameCost) return <Stack gap={2}>
                 <Title>✍️ 개명 시간</Title>
                 <Muted>사탕이 {state.renameCost}개 있어야 개명할 수 있어요 (지금 {me.candy}개)</Muted>
             </Stack>;
-            return <Stack gap={3}>
-                <Title>✍️ 사탕 {state.renameCost}개로 개명할까요?</Title>
-                <Muted>최대 {max}글자</Muted>
-                <NicknameInput max={max} buttonLabel="개명" disabled={act.isPending}
-                    onSubmit={(nickname, clear) => act.mutate({ endpoint: "/mt/rename", body: { nickname } }, { onSuccess: clear })} />
-            </Stack>;
-        }
-        case "NAMING_VOTE":
-            return <Stack gap={4}>
-                <Title>📜 명명식</Title>
-                {state.renames.map((r) => (
-                    <Stack key={r.userId} gap={2} p={4} rounded="12px" bg={mtColors.surface}>
-                        <Text color={mtColors.muted} textAlign="center">{r.oldNickname} →</Text>
-                        <Text color={mtColors.text} fontSize="28px" fontWeight="black" textAlign="center" wordBreak="break-all">{r.newNickname}</Text>
-                        {r.userId === me.userId
-                            ? <Muted>소리 내어 읽어주세요!</Muted>
-                            : <Grid templateColumns="1fr 1fr" gap={2}>
-                                {[true, false].map((approve) => (
-                                    <Button key={String(approve)} h="52px" fontSize="24px"
-                                        bg={me.namingVotes[r.userId] === approve ? mtColors.orange : mtColors.background}
-                                        onClick={() => act.mutate({ endpoint: "/mt/vote/naming", body: { targetUserId: r.userId, approve } })}>
-                                        {approve ? "👍" : "👎"}
-                                    </Button>
-                                ))}
-                            </Grid>}
-                    </Stack>
-                ))}
-            </Stack>;
+            return <RenameForm state={state} act={act} />;
         case "TRIAL_VOTE":
             return <Stack gap={4}>
                 <Title>⚖️ 마녀재판</Title>
@@ -187,31 +160,47 @@ function Phase({ state, now, act }: { state: MtClientState; now: number; act: Ac
                     onPick={(p) => act.mutate({ endpoint: "/mt/vote/trial", body: { targetUserId: p.userId } })} />
             </Stack>;
         case "GAME_OVER":
-            return <GameOver state={state} act={act} />;
+            return <GameOver state={state} />;
     }
 }
 
-function GameOver({ state, act }: { state: MtClientState; act: Act }) {
+/** Shows the bonus the new name would earn before spending candy on it. */
+function RenameForm({ state, act }: { state: MtClientState; act: Act }) {
     const me = state.me!;
+    const [draft, setDraft] = useState("");
+    const max = Math.min(MT_NICKNAME_MAX, mtGraphemes(me.nickname).length + MT_RENAME_EXTRA);
+    const touches = mtTouchCount(draft || me.nickname);
+    return <Stack gap={3}>
+        <Title>✍️ 사탕 {state.renameCost}개로 개명할까요?</Title>
+        <Muted>최대 {max}글자 · 바로 적용돼요</Muted>
+        <NicknameInput max={max} buttonLabel="개명" disabled={act.isPending} onValueChange={setDraft}
+            onSubmit={(nickname, clear) => act.mutate({ endpoint: "/mt/rename", body: { nickname } }, { onSuccess: clear })} />
+        <Muted>
+            {touches === null
+                ? "키보드로 칠 수 없는 문자가 있어요"
+                : `⌨️ 터치 ${touches}번 → 생존 보너스 +${Math.floor(touches * state.survivalMultiplier)}🍬`}
+        </Muted>
+    </Stack>;
+}
+
+function GameOver({ state }: { state: MtClientState }) {
     const result = state.result!;
-    const [picked, setPicked] = useState<number[]>([]);
-    const nameOf = (id: number) => state.players.find((p) => p.userId === id)?.nickname ?? "";
     return <Stack gap={4}>
-        <Title>👑 호박왕: {result.kingId ? nameOf(result.kingId) : "없음"}</Title>
-        {result.kingTargetIds
-            ? <Muted>🍺 {result.kingTargetIds.map(nameOf).join(", ")} 마셔라!</Muted>
-            : result.kingId === me.userId && <Stack gap={2}>
-                <Muted>마실 사람 두 명을 고르세요</Muted>
-                <PlayerGrid players={state.players.filter((p) => p.userId !== me.userId)} selectedId={null}
-                    disabled={(p) => picked.length >= 2 && !picked.includes(p.userId)}
-                    onPick={(p) => setPicked((prev) => prev.includes(p.userId) ? prev.filter((id) => id !== p.userId) : [...prev, p.userId])} />
-                <Text color={mtColors.text} textAlign="center">{picked.map(nameOf).join(", ")}</Text>
-                <Button bg={mtColors.orange} color="black" disabled={picked.length !== 2}
-                    onClick={() => act.mutate({ endpoint: "/mt/king", body: { targetUserIds: picked } })}>지목!</Button>
-            </Stack>}
-        <Stack gap={1} p={3} rounded="12px" bg={mtColors.surface}>
-            <Text color={mtColors.orange} fontWeight="bold">최종 닉네임 · 💥 폭발 횟수</Text>
-            {result.players.map((p) => <Text key={p.userId} color={mtColors.text} wordBreak="break-all">{p.nickname} · 💥{p.explodeCount}</Text>)}
+        <Title>🏁 최종 순위</Title>
+        <Stack gap={2}>
+            {result.players.map((p) => (
+                <Flex key={p.userId} justify="space-between" align="center" gap={2} p={3} rounded="12px" bg={mtColors.surface}
+                    border="2px solid" borderColor={p.rank === 1 ? mtColors.orange : "transparent"}>
+                    <Stack gap={0}>
+                        <Text fontWeight="black" color={p.rank === 1 ? mtColors.orange : mtColors.text}>
+                            {p.rank}등 {p.rank === 1 && "👑 호박왕"}
+                        </Text>
+                        <Text color={mtColors.text} wordBreak="break-all">{p.nickname}</Text>
+                        <Text color={mtColors.muted} fontSize="sm">🍬 {p.candy} · 💥 {p.explodeCount}</Text>
+                    </Stack>
+                    <Text fontSize="20px" fontWeight="black" whiteSpace="nowrap">🍺 {p.rank}잔</Text>
+                </Flex>
+            ))}
         </Stack>
         <Stack gap={1} p={3} rounded="12px" bg={mtColors.surface}>
             <Text color={mtColors.orange} fontWeight="bold">가장 많이 틀린 철자 TOP 3</Text>
@@ -265,7 +254,12 @@ export default function MtPlayerPage() {
                     : <Title>게임이 이미 진행 중이에요</Title>
                 : <>
                     <Flex justify="space-between" p={3} rounded="12px" bg={mtColors.surface}>
-                        <Text fontWeight="bold" wordBreak="break-all">나: {me.nickname}</Text>
+                        <Stack gap={0}>
+                            <Text fontWeight="bold" wordBreak="break-all">나: {me.nickname}</Text>
+                            <Text color={mtColors.muted} fontSize="sm">
+                                ⌨️ 터치 {mtTouchCount(me.nickname)}번 · 생존 보너스 +{Math.floor((mtTouchCount(me.nickname) ?? 0) * state.survivalMultiplier)}🍬
+                            </Text>
+                        </Stack>
                         <Text>🍬 {me.candy + holdingCandy}</Text>
                     </Flex>
                     <Phase state={state} now={now} act={act} />

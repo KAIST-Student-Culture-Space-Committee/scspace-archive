@@ -5,6 +5,7 @@ jest.mock(
 );
 
 import { IMtState } from '@scspace-depot/types/mt';
+import { mtTouchCount } from '@scspace-depot/consts/mt.const';
 import { MtService } from './mt.service';
 
 const user = (id: number) => ({ id, nameKr: `user${id}` }) as any;
@@ -31,6 +32,7 @@ describe('MtService flow', () => {
         const other = [1, 2, 3].find((id) => id !== holder);
 
         expect(s.pass(holder, nick(other) + ' ')).toEqual({ hit: false });
+        expect(s.adminState().players.find((p) => p.userId === holder).candy).toBe(-2); // typo penalty
         expect(() => s.pass(holder, nick(other))).toThrow(/locked/);
         jest.advanceTimersByTime(1500);
         expect(s.pass(holder, nick(other))).toEqual({ hit: true });
@@ -56,7 +58,8 @@ describe('MtService flow', () => {
         expect(st.phase).toBe('EXPLODED');
         expect(st.explosion.victimId).toBe(second);
         expect(st.grudgeHolderId).toBe(second);
-        expect(st.players.find((p) => p.userId === first).candy).toBe(5);
+        // 5s of holding + survival bonus (touch count × 1); the victim loses round candy and gets no bonus
+        expect(st.players.find((p) => p.userId === first).candy).toBe(5 + mtTouchCount(nick(first)));
         expect(st.players.find((p) => p.userId === second).candy).toBe(0);
     });
 
@@ -79,8 +82,10 @@ describe('MtService flow', () => {
         expect(s.adminState().phase).toBe('EXPLODED');
         s.next();
         s.chooseTot(1, 'TRICK');
+        const before = s.adminState().players.map((p) => p.candy);
         jest.advanceTimersByTime(10_000);
         expect(s.adminState().tot).toEqual({ trickIds: [1], outcome: 'STEAL' });
+        expect(s.adminState().players.map((p, i) => p.candy - before[i])).toEqual([0, 15, 15]); // treat
         s.chooseSteal(1, 2);
         jest.advanceTimersByTime(15_000);
         expect(s.adminState().players.map((p) => p.nickname)).toEqual(['호박령', '유', '마녀']);
@@ -92,7 +97,30 @@ describe('MtService flow', () => {
         const end = s.adminState();
         expect(end.phase).toBe('GAME_OVER');
         expect(end.players.find((p) => p.userId === 3).nickname).toBe('마');
-        expect(end.result.kingId).toBe(1);
+        const ranked = end.result.players;
+        expect(ranked[0].rank).toBe(1);
+        expect(ranked.every((p, i) => i === 0 || (p.candy <= ranked[i - 1].candy && p.rank >= ranked[i - 1].rank))).toBe(true);
+    });
+
+    it('renames immediately for candy, once per round', () => {
+        const s = setup();
+        s.updateSettings({ renameCost: 1, survivalMultiplier: 0 });
+        s.start();
+        s.next();
+        const victim = s.adminState().holderId;
+        const rich = [1, 2, 3].find((id) => id !== victim);
+        jest.advanceTimersByTime(3000);
+        s.next(); // explode: everyone else banks a little via treat below
+        s.next(); // TOT_CHOOSE
+        s.next(); // all treat (+15) -> RENAME
+        expect(s.adminState().phase).toBe('RENAME');
+        expect(() => s.rename(rich, 'ㄱㅏ')).toThrow(/cannot be typed/);
+        s.rename(rich, '새이름');
+        const me = view(s, rich).me;
+        expect(me.nickname).toBe('새이름');
+        expect(me.renamed).toBe(true);
+        expect(me.candy).toBe(14);
+        expect(() => s.rename(rich, '또바꿈')).toThrow(/Already renamed/);
     });
 
     it('freezes the explosion timer while paused', () => {

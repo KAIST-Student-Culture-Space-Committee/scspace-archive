@@ -9,14 +9,19 @@ import { mtColors } from "./shared";
  * Grapheme-truncated in onChange because maxLength misbehaves with Hangul composition on mobile.
  * Sends only on button/Enter so half-composed syllables never reach the server.
  */
-export default function NicknameInput({ max, buttonLabel, placeholder, disabled, onSubmit }: {
+export default function NicknameInput({ max, buttonLabel, placeholder, disabled, onSubmit, onValueChange }: {
     max: number;
     buttonLabel: string;
     placeholder?: string;
     disabled?: boolean;
     onSubmit: (value: string, clear: () => void) => void;
+    onValueChange?: (value: string) => void;
 }) {
-    const [value, setValue] = useState("");
+    const [value, setRawValue] = useState("");
+    const setValue = (next: string) => {
+        setRawValue(next);
+        onValueChange?.(next);
+    };
     const submit = () => {
         if (value && !disabled) onSubmit(value, () => setValue(""));
     };

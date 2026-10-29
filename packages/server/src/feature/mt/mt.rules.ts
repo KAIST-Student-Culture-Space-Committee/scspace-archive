@@ -6,11 +6,9 @@ import {
     MT_TRICK_CAUGHT_RATIO,
     MT_TRICK_STEAL_RATIO,
     mtGraphemes,
+    mtIsTypeable,
+    mtTouchCount,
 } from '@scspace-depot/consts/mt.const';
-
-const EMOJI = /\p{Extended_Pictographic}/u;
-// Control/format chars (zero-width etc.), Hangul fillers, and any whitespace other than a plain space.
-const INVISIBLE = /[\p{Cc}\p{Cf}\p{Co}\p{Cn}ᅟᅠㅤﾠ]|[^\S ]/u;
 
 /** Returns an English error message, or null when the nickname is acceptable. */
 export function validateNickname(nickname: unknown, maxLength: number, others: string[]): string | null {
@@ -18,9 +16,10 @@ export function validateNickname(nickname: unknown, maxLength: number, others: s
     const length = mtGraphemes(nickname).length;
     if (length < 1) return 'Nickname is empty';
     if (length > Math.min(maxLength, MT_NICKNAME_MAX)) return `Nickname must be at most ${Math.min(maxLength, MT_NICKNAME_MAX)} characters`;
-    if (EMOJI.test(nickname)) return 'Emoji are not allowed';
-    if (INVISIBLE.test(nickname)) return 'Invisible characters are not allowed';
     if (nickname !== nickname.trim()) return 'Leading or trailing spaces are not allowed';
+    // whitelist = whatever the keyboard model can type, which also rules out emoji and invisible characters
+    if (mtTouchCount(nickname) === null) return 'Only Korean, English, digits, spaces and keyboard symbols are allowed';
+    if (!mtIsTypeable(nickname)) return 'This nickname cannot be typed as-is (jamo would merge)';
     if (others.includes(nickname)) return 'Nickname already taken';
     return null;
 }
@@ -118,13 +117,15 @@ export function transformNickname(nickname: string, mode: MtHardMode | null, see
     }
 }
 
-/** Longest nickname wins, ties go to more candy. */
-export function pickKing<T extends { nickname: string; candy: number }>(players: T[]): T | null {
-    return players.reduce<T | null>((best, p) => {
-        if (!best) return p;
-        const diff = mtGraphemes(p.nickname).length - mtGraphemes(best.nickname).length;
-        return diff > 0 || (diff === 0 && p.candy > best.candy) ? p : best;
-    }, null);
+/** Most candy first; ties share a rank and the next rank skips (1, 2, 2, 4). */
+export function rankByCandy<T extends { candy: number }>(players: T[]): (T & { rank: number })[] {
+    const sorted = [...players].sort((a, b) => b.candy - a.candy);
+    return sorted.map((p) => ({ ...p, rank: sorted.findIndex((q) => q.candy === p.candy) + 1 }));
+}
+
+/** Survival bonus per explosion: harder-to-type nicknames earn more. */
+export function survivalBonus(nickname: string, multiplier: number) {
+    return Math.floor((mtTouchCount(nickname) ?? 0) * multiplier);
 }
 
 export function topTypos(typos: string[], limit = 3) {

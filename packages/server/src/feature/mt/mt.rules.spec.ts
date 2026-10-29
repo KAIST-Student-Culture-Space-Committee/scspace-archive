@@ -4,12 +4,13 @@ jest.mock(
     { virtual: true },
 );
 
-import { mtCandyForHold, mtGraphemes } from '@scspace-depot/consts/mt.const';
+import { mtCandyForHold, mtGraphemes, mtIsTypeable, mtTouchCount } from '@scspace-depot/consts/mt.const';
 import {
     explodeRange,
-    pickKing,
+    rankByCandy,
     returnKey,
     steal,
+    survivalBonus,
     topTypos,
     totOutcome,
     transformNickname,
@@ -18,24 +19,50 @@ import {
     validateNickname,
 } from './mt.rules';
 
+const ZERO_WIDTH = String.fromCharCode(0x200b);
+const HANGUL_FILLER = String.fromCharCode(0x3164);
+const NBSP = String.fromCharCode(0xa0);
+
 describe('nickname graphemes and validation', () => {
     it('counts syllables, jamo and spaces as one each', () => {
         expect(mtGraphemes('최유 ㅅ')).toHaveLength(4);
-        expect(mtGraphemes('👨‍👩‍👧')).toHaveLength(1);
     });
-    it('accepts jamo and inner spaces', () => {
+    it('accepts jamo, inner spaces, English, digits and keyboard symbols', () => {
         expect(validateNickname('ㅋㅋ 호박', 6, [])).toBeNull();
+        expect(validateNickname('호박a1!', 6, [])).toBeNull();
     });
-    it('rejects emoji, invisible chars, edge spaces, duplicates and overlength', () => {
-        expect(validateNickname('호박🎃', 6, [])).toMatch(/Emoji/);
-        expect(validateNickname('호​박', 6, [])).toMatch(/Invisible/);
-        expect(validateNickname('호ㅤ박', 6, [])).toMatch(/Invisible/);
-        expect(validateNickname('호 박', 6, [])).toMatch(/Invisible/);
+    it('rejects chars off the keyboard, untypeable jamo, edge spaces, duplicates and overlength', () => {
+        for (const bad of ['호박🎃', `호${ZERO_WIDTH}박`, `호${HANGUL_FILLER}박`, `호${NBSP}박`, "호'박", '漢字']) {
+            expect(validateNickname(bad, 6, [])).toMatch(/Only Korean/);
+        }
+        expect(validateNickname('ㄱㅏ', 6, [])).toMatch(/cannot be typed/);
         expect(validateNickname(' 호박', 6, [])).toMatch(/spaces/);
         expect(validateNickname('호박', 6, ['호박'])).toMatch(/taken/);
         expect(validateNickname('일이삼사오육칠', 6, [])).toMatch(/at most 6/);
         expect(validateNickname('가'.repeat(21), 30, [])).toMatch(/at most 20/);
         expect(validateNickname('', 6, [])).toMatch(/empty/);
+    });
+});
+
+describe('keyboard model (iPhone 2-set QWERTY)', () => {
+    it('counts touches: shift, compound jamo and page switches', () => {
+        expect(mtTouchCount('호박')).toBe(5);
+        expect(mtTouchCount('뷁')).toBe(5);
+        expect(mtTouchCount('쀍')).toBe(6);
+        expect(mtTouchCount('괜찮')).toBe(8);
+        expect(mtTouchCount('가 나')).toBe(5);
+        expect(mtTouchCount('호박a1')).toBe(9);
+        expect(mtTouchCount('Ab!')).toBe(6);
+        expect(mtTouchCount('1a')).toBe(5);
+        expect(mtTouchCount('#')).toBe(3);
+        expect(mtTouchCount('😀')).toBeNull();
+    });
+    it('knows which strings the IME can produce', () => {
+        for (const ok of ['강아지', '괜찮아', 'ㅋㅋ', 'ㄱㅅ', 'ㅘ', '가ㄸ', 'a가1']) expect(mtIsTypeable(ok)).toBe(true);
+        for (const bad of ['ㄱㅏ', '각ㅏ', '가ㄱ', '갈ㄱ', '고ㅏ', 'ㅗㅏ', '닭ㅏ']) expect(mtIsTypeable(bad)).toBe(false);
+    });
+    it('pays survival bonus by touch count', () => {
+        expect(survivalBonus('호박', 1.5)).toBe(7);
     });
 });
 
@@ -79,8 +106,9 @@ describe('trial and results', () => {
         expect(trialTarget([1, 2])).toBeNull();
         expect(trialTarget([])).toBeNull();
     });
-    it('crowns the longest nickname, then most candy', () => {
-        expect(pickKing([{ nickname: '가나', candy: 1 }, { nickname: '다라', candy: 5 }, { nickname: '마', candy: 9 }])?.candy).toBe(5);
+    it('ranks by candy with shared ranks on ties', () => {
+        expect(rankByCandy([{ candy: 3 }, { candy: 9 }, { candy: 3 }, { candy: -2 }]).map((p) => [p.candy, p.rank]))
+            .toEqual([[9, 1], [3, 2], [3, 2], [-2, 4]]);
     });
     it('ranks typos by frequency', () => {
         expect(topTypos(['a', 'b', 'a', 'c', 'b', 'a', 'd'])).toEqual([{ text: 'a', count: 3 }, { text: 'b', count: 2 }, { text: 'c', count: 1 }]);

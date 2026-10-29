@@ -11,9 +11,10 @@ import Scroll from "@scspace-client/Components/molecules/page/Scroll";
 
 const NUMBER_FIELDS: [keyof IMtSettings, string][] = [
     ["timerMin", "폭발 최소(초)"], ["timerMax", "폭발 최대(초)"], ["renameCost", "개명 비용(사탕)"],
-    ["trialEvery", "마녀재판 주기(라운드)"], ["totalRounds", "총 라운드"], ["rouletteChance", "룰렛 확률(%)"],
+    ["trialEvery", "마녀재판 주기(라운드)"], ["totalRounds", "총 라운드"], ["typoPenalty", "오타 벌금(사탕)"],
+    ["treatCandy", "Treat 보상(사탕)"], ["survivalMultiplier", "생존 보너스 배수(×터치 수)"],
 ];
-const TIMED_PHASES: MtTimedPhase[] = ["ROUND_START", "TOT_CHOOSE", "TOT_STEAL", "RENAME", "NAMING_VOTE", "TRIAL_VOTE"];
+const TIMED_PHASES: MtTimedPhase[] = ["ROUND_START", "TOT_CHOOSE", "TOT_STEAL", "RENAME", "TRIAL_VOTE"];
 const HARD_MODES = Object.keys(MT_HARD_MODE_LABEL) as MtHardMode[];
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -65,11 +66,8 @@ export default function MtAdmin() {
             {state.phase === "TOT_CHOOSE" && <Text fontSize="sm">
                 선택: {Object.entries(state.totChoices ?? {}).map(([id, c]) => `${nameOf(Number(id))}=${c}`).join(", ") || "없음"}
             </Text>}
-            {state.renames.length > 0 && <Text fontSize="sm">
-                개명: {state.renames.map((r) => `${r.oldNickname} → ${r.newNickname}`).join(", ")}
-            </Text>}
             {state.result && <Text fontSize="sm">
-                👑 {nameOf(state.result.kingId)} · 지목 {state.result.kingTargetIds?.map(nameOf).join(", ") ?? "-"}
+                순위: {state.result.players.map((p) => `${p.rank}등${p.rank === 1 ? "👑" : ""} ${p.nickname} (🍬${p.candy}, 🍺${p.rank}잔)`).join(" · ")}
             </Text>}
         </Section>
 
@@ -108,18 +106,31 @@ export default function MtAdmin() {
                     </Stack>
                 ))}
             </Grid>
-            <Flex gap={2} wrap="wrap">
+            <Stack gap={2} align="flex-start">
                 <Toggle label="하드모드" on={form.hardMode} onClick={() => set({ hardMode: !form.hardMode })} />
-                {HARD_MODES.map((m) => (
-                    <Toggle key={m} label={MT_HARD_MODE_LABEL[m]} on={form.hardModes[m]}
-                        onClick={() => set({ hardModes: { ...form.hardModes, [m]: !form.hardModes[m] } })} />
-                ))}
-            </Flex>
-            <Flex gap={2} wrap="wrap" align="center">
+                {form.hardMode && <Stack gap={2} pl={4} borderLeftWidth="2px" borderColor="orange.400">
+                    <Text fontSize="sm">켜 둔 방식 중 하나가 라운드마다 랜덤으로 적용돼요{HARD_MODES.some((m) => form.hardModes[m]) ? "" : " (하나 이상 켜야 적용돼요)"}</Text>
+                    <Flex gap={2} wrap="wrap">
+                        {HARD_MODES.map((m) => (
+                            <Toggle key={m} label={MT_HARD_MODE_LABEL[m]} on={form.hardModes[m]}
+                                onClick={() => set({ hardModes: { ...form.hardModes, [m]: !form.hardModes[m] } })} />
+                        ))}
+                    </Flex>
+                </Stack>}
+            </Stack>
+            <Stack gap={2} align="flex-start">
                 <Toggle label="음료 룰렛" on={form.roulette} onClick={() => set({ roulette: !form.roulette })} />
-                <Input flex={1} minW="200px" placeholder="음료 (쉼표로 구분)" value={form.drinks.join(",")}
-                    onChange={(e) => set({ drinks: e.target.value.split(",") })} />
-            </Flex>
+                {form.roulette && <Flex gap={2} wrap="wrap" align="flex-end" pl={4} borderLeftWidth="2px" borderColor="orange.400" w="full">
+                    <Stack gap={1}>
+                        <Text fontSize="sm">폭발 시 룰렛 확률(%)</Text>
+                        <Input type="number" w="120px" value={String(form.rouletteChance)} onChange={(e) => set({ rouletteChance: Number(e.target.value) })} />
+                    </Stack>
+                    <Stack gap={1} flex={1} minW="200px">
+                        <Text fontSize="sm">음료 (쉼표로 구분)</Text>
+                        <Input value={form.drinks.join(",")} onChange={(e) => set({ drinks: e.target.value.split(",") })} />
+                    </Stack>
+                </Flex>}
+            </Stack>
             <Flex gap={2}>
                 <Button colorPalette="orange" disabled={!draft}
                     onClick={() => act.mutate({ endpoint: "/mt/admin/settings", method: "PATCH", body: { ...form, drinks: form.drinks.map((d) => d.trim()).filter(Boolean) } },
