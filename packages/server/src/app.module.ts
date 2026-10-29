@@ -18,6 +18,7 @@ import { FileModule } from './tools/file/file.module';
 import { PasspinModule } from "./feature/passpin/passpin.module";
 import { PenaltyModule } from './feature/penalty/penalty.module';
 import { MatchModule } from './feature/match/match.module';
+import { MtModule } from './feature/mt/mt.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { MatchModule } from './feature/match/match.module';
     PasspinModule,
     PenaltyModule,
     MatchModule,
+    MtModule,
   ],
   controllers: [AppController],
   providers: [AppService],
