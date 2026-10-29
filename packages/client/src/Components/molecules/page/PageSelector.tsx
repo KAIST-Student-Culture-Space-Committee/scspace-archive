@@ -16,7 +16,7 @@ import { useRouter } from "next/navigation";
 import LoadingComponent from "../../atoms/Loading";
 
 export interface IPage {
-    kor: string;
+    kor: React.ReactNode;
     eng: string;
     preview: React.ReactNode;
     href: string;
