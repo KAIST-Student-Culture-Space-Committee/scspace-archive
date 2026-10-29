@@ -28,6 +28,9 @@ export interface IMtSettings {
     phaseSeconds: Record<MtTimedPhase, number>;
     hardMode: boolean;
     hardModes: Record<MtHardMode, boolean>;
+    /** server-side hard modes show the full names for `revealSeconds` out of every `revealEvery` seconds */
+    revealEvery: number;
+    revealSeconds: number;
     roulette: boolean;
     /** 0~100 (%) */
     rouletteChance: number;
@@ -88,6 +91,8 @@ export interface IMtState {
     /** End of the current timed phase; null while HOLDING so the explosion time stays hidden. */
     deadline: number | null;
     hardMode: MtHardMode | null;
+    /** true while the hard-mode names are temporarily shown in full */
+    revealed: boolean;
     holderId: number | null;
     holdStartedAt: number | null;
     holdingStartedAt: number | null;

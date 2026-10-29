@@ -116,6 +116,17 @@ export default function MtAdmin() {
                                 onClick={() => set({ hardModes: { ...form.hardModes, [m]: !form.hardModes[m] } })} />
                         ))}
                     </Flex>
+                    <Flex gap={2} wrap="wrap" align="flex-end">
+                        <Stack gap={1}>
+                            <Text fontSize="sm">몇 초마다 원래 이름 공개</Text>
+                            <Input type="number" w="120px" value={String(form.revealEvery)} onChange={(e) => set({ revealEvery: Number(e.target.value) })} />
+                        </Stack>
+                        <Stack gap={1}>
+                            <Text fontSize="sm">공개 시간(초, 0이면 안 함)</Text>
+                            <Input type="number" w="120px" value={String(form.revealSeconds)} onChange={(e) => set({ revealSeconds: Number(e.target.value) })} />
+                        </Stack>
+                    </Flex>
+                    <Text fontSize="xs" color="fg.muted">깜빡이는 원래 방식(3초 중 1초) 그대로예요</Text>
                 </Stack>}
             </Stack>
             <Stack gap={2} align="flex-start">

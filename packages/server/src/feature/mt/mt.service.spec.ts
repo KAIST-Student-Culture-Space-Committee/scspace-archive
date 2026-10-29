@@ -73,6 +73,22 @@ describe('MtService flow', () => {
         expect(JSON.stringify(view(s, 1))).not.toContain('유령신부');
     });
 
+    it('reveals full names for 2s out of every 4s in hard mode', () => {
+        const s = setup(['잭오랜턴', '유령신부', '마녀']);
+        s.updateSettings({ hardMode: true, hardModes: { PARTIAL: true, CHOSEONG: false, SHUFFLE: false, BLINK: false } });
+        s.start();
+        const name2 = () => view(s, 1).players.find((p) => p.userId === 2).nickname;
+        expect(name2()).toBe('유령●●');
+        jest.advanceTimersByTime(2000);
+        expect(name2()).toBe('유령신부');
+        expect(view(s, 1).revealed).toBe(true);
+        jest.advanceTimersByTime(2000);
+        expect(name2()).toBe('유령●●');
+        s.updateSettings({ revealSeconds: 0 });
+        jest.advanceTimersByTime(2000);
+        expect(name2()).toBe('유령●●');
+    });
+
     it('runs a whole round through auto deadlines to game over', () => {
         const s = setup();
         s.start();

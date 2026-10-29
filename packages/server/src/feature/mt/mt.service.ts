@@ -76,6 +76,8 @@ export class MtService implements OnModuleInit, OnModuleDestroy {
     private interval: NodeJS.Timeout | null = null;
     private hardMode: MtHardMode | null = null;
     private seed = 0;
+    private roundStartedAt = 0;
+    private revealed = false;
     private holderId: number | null = null;
     private holdStartedAt: number | null = null;
     private holdingStartedAt: number | null = null;
@@ -111,18 +113,20 @@ export class MtService implements OnModuleInit, OnModuleDestroy {
             }
         }
         this.tick();
+        this.syncReveal();
         if (since === this.version) return { changed: false };
         return this.view(userId);
     }
 
     adminState(): IMtState {
         this.tick();
+        this.syncReveal();
         return this.view(null);
     }
 
     private view(viewerId: number | null): IMtState {
         const admin = viewerId === null;
-        const hide = !admin && this.hardMode !== null && (this.phase === 'ROUND_START' || this.phase === 'HOLDING');
+        const hide = !admin && !this.revealed && this.hardMode !== null && (this.phase === 'ROUND_START' || this.phase === 'HOLDING');
         const me = viewerId === null ? undefined : this.players.get(viewerId);
         const live = this.liveHold();
         return {
@@ -139,6 +143,7 @@ export class MtService implements OnModuleInit, OnModuleDestroy {
             survivalMultiplier: this.settings.survivalMultiplier,
             deadline: this.phase === 'HOLDING' ? null : this.deadline,
             hardMode: this.hardMode,
+            revealed: this.revealed,
             holderId: this.holderId,
             holdStartedAt: this.holdStartedAt,
             holdingStartedAt: this.holdingStartedAt,
@@ -326,6 +331,9 @@ export class MtService implements OnModuleInit, OnModuleDestroy {
         if (!numbers.every((v) => int(v, 1, 3600)) || Object.keys(next.phaseSeconds).length !== TIMED_PHASES.length) {
             throw new BadRequestException('Numbers must be integers between 1 and 3600');
         }
+        if (!int(next.revealEvery, 1, 60) || !int(next.revealSeconds, 0, 60)) {
+            throw new BadRequestException('revealEvery must be 1~60 and revealSeconds 0~60');
+        }
         if (!int(next.typoPenalty, 0, 100) || !int(next.treatCandy, 0, 100)) {
             throw new BadRequestException('typoPenalty and treatCandy must be integers between 0 and 100');
         }
@@ -451,6 +459,8 @@ export class MtService implements OnModuleInit, OnModuleDestroy {
         const modes = HARD_MODES.filter((m) => this.settings.hardModes[m]);
         this.hardMode = this.settings.hardMode && modes.length ? pickRandom(modes) : null;
         this.seed = Math.floor(Math.random() * 2 ** 31);
+        this.roundStartedAt = Date.now();
+        this.revealed = false;
         this.log(`🕯️ ${round}라운드 시작`);
         this.enterTimed('ROUND_START');
     }
@@ -557,6 +567,21 @@ export class MtService implements OnModuleInit, OnModuleDestroy {
         this.enter('GAME_OVER', null);
     }
 
+    /**
+     * Each `revealEvery` seconds the last `revealSeconds` show full names (BLINK is client-side, so excluded).
+     * The flag lives in the version, so polls pick up each flip within one poll interval.
+     */
+    private syncReveal() {
+        const { revealEvery, revealSeconds } = this.settings;
+        const cycle = (Date.now() - this.roundStartedAt) % (revealEvery * 1000);
+        const revealed = this.hardMode !== null && this.hardMode !== 'BLINK' && revealSeconds > 0 &&
+            cycle >= (revealEvery - revealSeconds) * 1000;
+        if (revealed !== this.revealed) {
+            this.revealed = revealed;
+            this.bump();
+        }
+    }
+
     /** Skips a change that would duplicate someone's nickname, since passing needs unique names. */
     private tryRename(player: Player, nickname: string) {
         if (this.otherNicknames(player.userId).includes(nickname)) return false;
@@ -574,6 +599,7 @@ export class MtService implements OnModuleInit, OnModuleDestroy {
             }
         }
         this.tick();
+        this.syncReveal();
         const holder = this.players.get(this.holderId);
         if (this.phase === 'HOLDING' && !this.paused && holder && !holder.online) {
             const candidates = [...this.players.values()].filter((p) => p.online && p !== holder);

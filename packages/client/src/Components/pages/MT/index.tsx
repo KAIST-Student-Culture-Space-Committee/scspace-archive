@@ -241,7 +241,7 @@ export default function MtPlayerPage() {
             </Flex>
             {state.paused && <Text textAlign="center" bg={mtColors.purple} rounded="8px" py={2} fontWeight="bold">⏸ 일시정지</Text>}
             {state.hardMode && (state.phase === "ROUND_START" || state.phase === "HOLDING") &&
-                <Text textAlign="center" color={mtColors.red} fontWeight="bold">🔥 하드모드: {MT_HARD_MODE_LABEL[state.hardMode]}</Text>}
+                <Text textAlign="center" color={mtColors.red} fontWeight="bold">🔥 하드모드: {MT_HARD_MODE_LABEL[state.hardMode]}{state.revealed && " · 👀 이름 공개 중!"}</Text>}
 
             {!me
                 ? state.phase === "LOBBY"

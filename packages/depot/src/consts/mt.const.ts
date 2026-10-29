@@ -28,6 +28,8 @@ export const MT_DEFAULT_SETTINGS: IMtSettings = {
     phaseSeconds: { ROUND_START: 10, TOT_CHOOSE: 10, TOT_STEAL: 15, RENAME: 15, TRIAL_VOTE: 20 },
     hardMode: false,
     hardModes: { PARTIAL: true, CHOSEONG: true, SHUFFLE: true, BLINK: true },
+    revealEvery: 4,
+    revealSeconds: 2,
     roulette: false,
     rouletteChance: 30,
     drinks: ['콜라', '사이다', '맥주'],
